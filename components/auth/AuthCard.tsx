@@ -13,14 +13,14 @@ type AuthCardProps = {
 
 export function AuthCard({ title, subtitle, footerHref, footerLabel, footerText, children }: AuthCardProps) {
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4 py-8">
-      <section className="w-full max-w-md rounded-[8px] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <div className="mb-8 flex items-start gap-3">
-          <div className="flex size-11 items-center justify-center rounded-[8px] bg-blue-50 text-blue-700">
+    <main className="flex min-h-dvh items-center justify-center px-4 py-8 soft-grid-bg">
+      <section className="app-surface rounded-[8px] p-4 sm:p-7" style={{ width: "min(calc(100vw - 3rem), 28rem)" }}>
+        <div className="mb-7 flex items-start gap-3">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-[8px] bg-indigo-600 text-white shadow-lg shadow-indigo-600/20">
             <Umbrella aria-hidden="true" size={24} />
           </div>
-          <div>
-            <p className="text-sm font-medium text-blue-700">PCSHSPL</p>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-indigo-700">PCSHSPL</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-normal text-slate-950">{title}</h1>
             <p className="mt-2 text-sm leading-6 text-slate-600">{subtitle}</p>
           </div>
@@ -30,7 +30,7 @@ export function AuthCard({ title, subtitle, footerHref, footerLabel, footerText,
 
         <p className="mt-6 text-center text-sm text-slate-600">
           {footerText}{" "}
-          <Link className="font-medium text-blue-700 hover:text-blue-800" href={footerHref}>
+          <Link className="font-semibold text-indigo-700 hover:text-indigo-800" href={footerHref}>
             {footerLabel}
           </Link>
         </p>

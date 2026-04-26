@@ -30,10 +30,10 @@ export default async function DashboardPage() {
 
   if (profile.status !== "active") {
     return (
-      <main className="flex min-h-dvh items-center justify-center px-4">
-        <section className="max-w-md rounded-[8px] border border-red-200 bg-white p-6 text-center shadow-sm">
+      <main className="flex min-h-dvh items-center justify-center px-4 soft-grid-bg">
+        <section className="app-surface max-w-md rounded-[8px] border-rose-200 p-6 text-center">
           <h1 className="text-xl font-semibold text-slate-950">บัญชีถูกระงับ</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">กรุณาติดต่อผู้ดูแลระบบเพื่อเปิดใช้งานบัญชีอีกครั้ง</p>
+          <p className="mt-2 rounded-[8px] bg-rose-50 px-3 py-2 text-sm leading-6 text-rose-800">กรุณาติดต่อผู้ดูแลระบบเพื่อเปิดใช้งานบัญชีอีกครั้ง</p>
         </section>
       </main>
     );

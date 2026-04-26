@@ -50,7 +50,7 @@ export function RegisterForm() {
       <label className="block text-sm font-medium text-slate-700">
         อีเมล
         <input
-          className="focus-ring mt-2 w-full rounded-[8px] border border-slate-300 px-3 py-2.5 text-slate-950"
+          className="focus-ring field-control mt-2 min-h-11 w-full rounded-[8px] px-3 py-2.5 text-slate-950"
           type="email"
           autoComplete="email"
           value={email}
@@ -62,7 +62,7 @@ export function RegisterForm() {
         <label className="block text-sm font-medium text-slate-700">
           ชั้น
           <input
-            className="focus-ring mt-2 w-full rounded-[8px] border border-slate-300 px-3 py-2.5 text-slate-950"
+            className="focus-ring field-control mt-2 min-h-11 w-full rounded-[8px] px-3 py-2.5 text-slate-950"
             value={classLevel}
             onChange={(event) => setClassLevel(event.target.value)}
             placeholder="เช่น ม.5/1"
@@ -72,7 +72,7 @@ export function RegisterForm() {
         <label className="block text-sm font-medium text-slate-700">
           เลขที่
           <input
-            className="focus-ring mt-2 w-full rounded-[8px] border border-slate-300 px-3 py-2.5 text-slate-950"
+            className="focus-ring field-control mt-2 min-h-11 w-full rounded-[8px] px-3 py-2.5 text-slate-950"
             inputMode="numeric"
             value={studentNumber}
             onChange={(event) => setStudentNumber(event.target.value)}
@@ -83,7 +83,7 @@ export function RegisterForm() {
       <label className="block text-sm font-medium text-slate-700">
         รหัสผ่าน
         <input
-          className="focus-ring mt-2 w-full rounded-[8px] border border-slate-300 px-3 py-2.5 text-slate-950"
+          className="focus-ring field-control mt-2 min-h-11 w-full rounded-[8px] px-3 py-2.5 text-slate-950"
           type="password"
           autoComplete="new-password"
           value={password}
@@ -92,10 +92,10 @@ export function RegisterForm() {
         />
       </label>
       {message ? (
-        <p className="rounded-[8px] border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{message}</p>
+        <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm font-medium text-rose-800" role="alert">{message}</p>
       ) : null}
       <button
-        className="focus-ring flex w-full cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-blue-700 px-4 py-2.5 font-medium text-white transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+        className="focus-ring flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-indigo-600 px-4 py-2.5 font-semibold text-white shadow-lg shadow-indigo-600/20 transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
         disabled={isLoading}
         type="submit"
       >

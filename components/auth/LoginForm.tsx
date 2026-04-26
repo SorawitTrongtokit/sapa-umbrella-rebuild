@@ -59,7 +59,7 @@ export function LoginForm() {
         <label className="block text-sm font-medium text-slate-700">
           อีเมล
           <input
-            className="focus-ring mt-2 w-full rounded-[8px] border border-slate-300 px-3 py-2.5 text-slate-950 placeholder:text-slate-400"
+            className="focus-ring field-control mt-2 min-h-11 w-full rounded-[8px] px-3 py-2.5 text-slate-950 placeholder:text-slate-400"
             type="email"
             autoComplete="email"
             value={email}
@@ -70,7 +70,7 @@ export function LoginForm() {
         <label className="block text-sm font-medium text-slate-700">
           รหัสผ่าน
           <input
-            className="focus-ring mt-2 w-full rounded-[8px] border border-slate-300 px-3 py-2.5 text-slate-950 placeholder:text-slate-400"
+            className="focus-ring field-control mt-2 min-h-11 w-full rounded-[8px] px-3 py-2.5 text-slate-950 placeholder:text-slate-400"
             type="password"
             autoComplete="current-password"
             value={password}
@@ -79,12 +79,12 @@ export function LoginForm() {
           />
         </label>
         {message ? (
-          <p className="rounded-[8px] border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <p className="rounded-[8px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm font-medium text-amber-900" role="alert">
             {message}
           </p>
         ) : null}
         <button
-          className="focus-ring flex w-full cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-blue-700 px-4 py-2.5 font-medium text-white transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="focus-ring flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-indigo-600 px-4 py-2.5 font-semibold text-white shadow-lg shadow-indigo-600/20 transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
           disabled={isLoading}
           type="submit"
         >
@@ -100,7 +100,7 @@ export function LoginForm() {
       </div>
 
       <button
-        className="focus-ring w-full cursor-pointer rounded-[8px] border border-slate-300 bg-white px-4 py-2.5 font-medium text-slate-800 transition-colors hover:bg-slate-50"
+        className="focus-ring min-h-11 w-full cursor-pointer rounded-[8px] border border-indigo-100 bg-white px-4 py-2.5 font-semibold text-slate-800 transition-colors hover:bg-indigo-50 hover:text-indigo-800"
         type="button"
         onClick={handleGoogleLogin}
       >

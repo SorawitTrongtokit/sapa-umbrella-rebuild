@@ -104,7 +104,7 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
   }
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
       <section className="space-y-5">
         <div className="grid gap-3 sm:grid-cols-3">
           <SummaryCard label="พร้อมใช้งาน" value={counts.available} tone="success" />
@@ -113,30 +113,30 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
         </div>
 
         {message ? (
-          <p className="rounded-[8px] border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">{message}</p>
+          <p className="rounded-[8px] border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-900" role="status">{message}</p>
         ) : null}
 
         <div className="space-y-4">
           {groups.map((group) => (
-            <section className="rounded-[8px] border border-slate-200 bg-white p-4 shadow-sm" key={group.location.id}>
+            <section className="app-surface rounded-[8px] p-4" key={group.location.id}>
               <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-lg font-semibold text-slate-950">{group.location.name_th}</h2>
-                <p className="text-sm text-slate-600">ยืมที่ไหน ต้องคืนที่นั่น</p>
+                <p className="rounded-full bg-amber-50 px-3 py-1 text-sm font-medium text-amber-800">ยืมที่ไหน ต้องคืนที่นั่น</p>
               </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-7">
                 {group.umbrellas.map((umbrella) => {
                   const isMine = umbrella.borrowed_by === profile.id;
                   const canClick = umbrella.status === "available" || isMine;
                   return (
                     <button
-                      className={`focus-ring min-h-32 cursor-pointer rounded-[8px] border p-3 text-left transition-colors disabled:cursor-not-allowed ${
+                      className={`focus-ring min-h-32 cursor-pointer rounded-[8px] border p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${
                         umbrella.status === "available"
-                          ? "border-green-200 bg-green-50 hover:bg-green-100"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-950 hover:bg-emerald-100"
                           : umbrella.status === "borrowed"
                             ? isMine
-                              ? "border-blue-200 bg-blue-50 hover:bg-blue-100"
-                              : "border-amber-200 bg-amber-50"
-                            : "border-slate-200 bg-slate-100 text-slate-500"
+                              ? "border-indigo-200 bg-indigo-50 text-indigo-950 hover:bg-indigo-100"
+                              : "border-amber-200 bg-amber-50 text-amber-950"
+                            : "border-slate-200 bg-slate-100 text-slate-500 shadow-none"
                       }`}
                       disabled={!canClick || busyUmbrella === umbrella.id}
                       key={umbrella.id}
@@ -145,9 +145,11 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
                     >
                       <span className="flex items-center justify-between gap-2">
                         <span className="text-2xl font-semibold">#{umbrella.id}</span>
-                        <UmbrellaIcon aria-hidden="true" size={20} />
+                        <span className="flex size-8 items-center justify-center rounded-[8px] bg-white/70">
+                          <UmbrellaIcon aria-hidden="true" size={19} />
+                        </span>
                       </span>
-                      <span className="mt-4 block text-sm font-medium">{statusLabel[umbrella.status]}</span>
+                      <span className="mt-4 block text-sm font-semibold">{statusLabel[umbrella.status]}</span>
                       <span className="mt-2 block text-xs leading-5 text-slate-600">
                         {busyUmbrella === umbrella.id
                           ? "กำลังทำรายการ"
@@ -168,14 +170,14 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
         </div>
       </section>
 
-      <aside className="space-y-5">
-        <section className="rounded-[8px] border border-slate-200 bg-white p-4 shadow-sm">
+      <aside className="space-y-5 xl:sticky xl:top-5">
+        <section className="app-surface rounded-[8px] p-4">
           <h2 className="text-base font-semibold text-slate-950">ข้อมูลส่วนตัว</h2>
           <form className="mt-4 space-y-3" onSubmit={saveProfile}>
             <label className="block text-sm font-medium text-slate-700">
               ชื่อที่แสดง
               <input
-                className="focus-ring mt-1.5 w-full rounded-[8px] border border-slate-300 px-3 py-2 text-sm"
+                className="focus-ring field-control mt-1.5 min-h-11 w-full rounded-[8px] px-3 py-2 text-sm"
                 value={profileDraft.displayName}
                 onChange={(event) => setProfileDraft((draft) => ({ ...draft, displayName: event.target.value }))}
               />
@@ -184,7 +186,7 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
               <label className="block text-sm font-medium text-slate-700">
                 ชั้น
                 <input
-                  className="focus-ring mt-1.5 w-full rounded-[8px] border border-slate-300 px-3 py-2 text-sm"
+                  className="focus-ring field-control mt-1.5 min-h-11 w-full rounded-[8px] px-3 py-2 text-sm"
                   value={profileDraft.classLevel}
                   onChange={(event) => setProfileDraft((draft) => ({ ...draft, classLevel: event.target.value }))}
                 />
@@ -192,7 +194,7 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
               <label className="block text-sm font-medium text-slate-700">
                 เลขที่
                 <input
-                  className="focus-ring mt-1.5 w-full rounded-[8px] border border-slate-300 px-3 py-2 text-sm"
+                  className="focus-ring field-control mt-1.5 min-h-11 w-full rounded-[8px] px-3 py-2 text-sm"
                   inputMode="numeric"
                   value={profileDraft.studentNumber}
                   onChange={(event) => setProfileDraft((draft) => ({ ...draft, studentNumber: event.target.value }))}
@@ -200,7 +202,7 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
               </label>
             </div>
             <button
-              className="focus-ring flex w-full cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-slate-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
+              className="focus-ring flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-slate-900 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/10 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
               disabled={isSavingProfile}
               type="submit"
             >
@@ -210,18 +212,18 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
           </form>
         </section>
 
-        <section className="rounded-[8px] border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="app-surface rounded-[8px] p-4">
           <h2 className="text-base font-semibold text-slate-950">ส่งคำติชม</h2>
           <form className="mt-4 space-y-3" onSubmit={sendFeedback}>
             <textarea
-              className="focus-ring min-h-28 w-full resize-y rounded-[8px] border border-slate-300 px-3 py-2 text-sm"
+              className="focus-ring field-control min-h-28 w-full resize-y rounded-[8px] px-3 py-2 text-sm"
               value={feedback}
               onChange={(event) => setFeedback(event.target.value)}
               placeholder="แจ้งปัญหา หรือเสนอแนะการใช้งาน"
               required
             />
             <button
-              className="focus-ring flex w-full cursor-pointer items-center justify-center gap-2 rounded-[8px] border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-800 transition-colors hover:bg-blue-100"
+              className="focus-ring flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[8px] border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-800 transition-colors hover:bg-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
               disabled={isSendingFeedback}
               type="submit"
             >
@@ -238,18 +240,20 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
 function SummaryCard({ label, value, tone }: { label: string; value: number; tone: "success" | "warning" | "danger" }) {
   const Icon = tone === "success" ? Check : tone === "warning" ? Clock : XCircle;
   const colors = {
-    success: "border-green-200 bg-green-50 text-green-800",
+    success: "border-emerald-200 bg-emerald-50 text-emerald-800",
     warning: "border-amber-200 bg-amber-50 text-amber-800",
-    danger: "border-red-200 bg-red-50 text-red-800"
+    danger: "border-rose-200 bg-rose-50 text-rose-800"
   };
 
   return (
-    <div className={`rounded-[8px] border p-4 ${colors[tone]}`}>
+    <div className={`rounded-[8px] border p-4 shadow-sm ${colors[tone]}`}>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium">{label}</p>
-        <Icon aria-hidden="true" size={18} />
+        <p className="text-sm font-semibold">{label}</p>
+        <span className="flex size-8 items-center justify-center rounded-[8px] bg-white/70">
+          <Icon aria-hidden="true" size={18} />
+        </span>
       </div>
-      <p className="mt-3 text-3xl font-semibold">{value}</p>
+      <p className="mt-3 text-3xl font-semibold tracking-normal">{value}</p>
     </div>
   );
 }
