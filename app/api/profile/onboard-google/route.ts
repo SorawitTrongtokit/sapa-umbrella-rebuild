@@ -11,6 +11,11 @@ import { passwordSchema, profileSchema } from "@/lib/validation";
 
 const onboardingSchema = profileSchema.merge(passwordSchema);
 
+function isSamePasswordError(error: { message: string }) {
+  const message = error.message.toLowerCase();
+  return message.includes("password") && (message.includes("same") || message.includes("different"));
+}
+
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -20,12 +25,22 @@ export async function POST(request: NextRequest) {
 
     const service = createSupabaseServiceClient();
     const role = isOwnerEmail(user.email) ? "owner" : "user";
+    const { data: existingProfile } = await service
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (existingProfile?.onboarding_completed) {
+      return jsonOk({ userId: user.id, email: user.email, alreadyOnboarded: true });
+    }
+
     const { error } = await service.auth.admin.updateUserById(user.id, {
       password: body.password,
       app_metadata: { role }
     });
 
-    if (error) throw new Error(error.message);
+    if (error && !isSamePasswordError(error)) throw new Error(error.message);
 
     const encrypted = encryptPassword(body.password);
     const sql = getSql();
@@ -99,7 +114,7 @@ export async function POST(request: NextRequest) {
       userAgent: meta.userAgent
     });
 
-    return jsonOk({ userId: user.id });
+    return jsonOk({ userId: user.id, email: user.email });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return jsonError(new Error(error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง"));

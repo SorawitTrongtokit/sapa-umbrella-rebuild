@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 type OnboardingFormProps = {
   defaultName: string;
@@ -27,14 +28,29 @@ export function OnboardingForm({ defaultName }: OnboardingFormProps) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ displayName, classLevel, studentNumber, password })
     });
-    const payload = (await response.json()) as { ok: boolean; error?: string };
-    setIsLoading(false);
+    const payload = (await response.json()) as { ok: boolean; data?: { email: string }; error?: string };
 
     if (!payload.ok) {
+      setIsLoading(false);
       setMessage(payload.error ?? "บันทึกข้อมูลไม่สำเร็จ");
       return;
     }
 
+    if (payload.data?.email) {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: payload.data.email,
+        password
+      });
+
+      if (error) {
+        setIsLoading(false);
+        setMessage(error.message);
+        return;
+      }
+    }
+
+    setIsLoading(false);
     router.replace("/dashboard");
     router.refresh();
   }
