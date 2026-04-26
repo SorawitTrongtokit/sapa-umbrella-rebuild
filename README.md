@@ -18,7 +18,7 @@
    APP_URL=http://localhost:3000
    OWNER_EMAIL=
    PASSWORD_VAULT_KEY=
-   LEGACY_PASSWORD_KEY=PCSHSPL-2025-UMBRELLA-SYSTEM-SECURE-KEY-v1.0.0
+   LEGACY_PASSWORD_KEY=
    ```
 
 3. ใช้ SQL migration ใน `supabase/migrations/202604260001_initial_schema.sql` กับ Supabase project

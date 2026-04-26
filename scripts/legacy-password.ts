@@ -25,8 +25,14 @@ export function decryptLegacyPassword(candidate: LegacyPasswordCandidate, key: s
   if (!candidate) return null;
 
   if (typeof candidate === "string") {
-    const cryptoJsPlain = CryptoJS.AES.decrypt(candidate, key).toString(CryptoJS.enc.Utf8);
-    if (cryptoJsPlain) return cryptoJsPlain;
+    try {
+      const cryptoJsPlain = CryptoJS.AES.decrypt(candidate, key).toString(CryptoJS.enc.Utf8);
+      if (cryptoJsPlain) return cryptoJsPlain;
+    } catch {
+      return null;
+    }
+
+    if (candidate.startsWith("U2FsdGVk") || candidate.includes(".")) return null;
     return candidate.length >= 8 && candidate.length <= 128 ? candidate : null;
   }
 

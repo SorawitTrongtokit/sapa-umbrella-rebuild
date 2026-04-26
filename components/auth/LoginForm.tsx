@@ -21,10 +21,21 @@ export function LoginForm() {
     const supabase = createSupabaseBrowserClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-    setIsLoading(false);
     if (error) {
-      setMessage("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
-      return;
+      const legacyResponse = await fetch("/api/auth/legacy-login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+      const legacyPayload = (await legacyResponse.json()) as { ok: boolean; error?: string };
+      setIsLoading(false);
+
+      if (!legacyPayload.ok) {
+        setMessage(legacyPayload.error ?? "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+        return;
+      }
+    } else {
+      setIsLoading(false);
     }
 
     router.replace("/dashboard");
