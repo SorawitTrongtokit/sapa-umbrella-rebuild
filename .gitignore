@@ -1,0 +1,14 @@
+.next/
+tsconfig.tsbuildinfo
+node_modules/
+.env
+.env*.local
+!.env.example
+data/*.json
+data/*.ndjson
+coverage/
+playwright-report/
+test-results/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
