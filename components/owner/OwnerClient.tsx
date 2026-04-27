@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Eye, KeyRound, Save, Search, ShieldAlert } from "lucide-react";
+import { Eye, KeyRound, MessageSquare, Save, Search, ShieldAlert, UserCog, Users } from "lucide-react";
 import type { AuditLog, Feedback, Profile } from "@/lib/types";
 
 type OwnerClientProps = {
@@ -29,6 +29,15 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
         .some((value) => String(value).toLowerCase().includes(keyword))
     );
   }, [query, userList]);
+
+  const totals = useMemo(
+    () => ({
+      users: userList.length,
+      active: userList.filter((user) => user.status === "active").length,
+      admins: userList.filter((user) => user.role === "admin" || user.role === "owner").length
+    }),
+    [userList]
+  );
 
   async function updateUser(patch: Partial<Profile>) {
     if (!selectedUser) return;
@@ -95,35 +104,47 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
   }
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)] xl:items-start">
-      <aside className="space-y-4 xl:sticky xl:top-5">
-        <section className="app-surface rounded-[8px] p-4">
-          <label className="block text-sm font-medium text-slate-700">
+    <div className="grid grid-cols-12 gap-6">
+      <aside className="col-span-full space-y-6 lg:col-span-3 lg:sticky lg:top-6 lg:self-start">
+        <section className="glass-card rounded-[32px] p-6">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-black text-blue-950">ผู้ใช้ทั้งหมด</h2>
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-400">{filteredUsers.length} results</p>
+            </div>
+            <span className="flex size-11 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-100">
+              <Users aria-hidden="true" size={21} />
+            </span>
+          </div>
+
+          <label className="block text-xs font-black uppercase tracking-widest text-slate-400">
             ค้นหาผู้ใช้
             <span className="relative mt-2 block">
-              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-2.5 text-slate-400" size={17} />
+              <Search aria-hidden="true" className="pointer-events-none absolute left-4 top-3.5 text-slate-400" size={17} />
               <input
-                className="focus-ring field-control min-h-11 w-full rounded-[8px] py-2 pl-9 pr-3 text-sm"
+                className="focus-ring field-control min-h-12 w-full rounded-2xl py-3 pl-11 pr-4 text-sm"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
+                placeholder="ชื่อ อีเมล ชั้น หรือเลขที่"
               />
             </span>
           </label>
-          <div className="mt-4 max-h-[520px] space-y-2 overflow-auto pr-1">
+
+          <div className="mt-5 max-h-[560px] space-y-2 overflow-auto pr-1">
             {filteredUsers.map((user) => (
               <button
-                className={`focus-ring w-full cursor-pointer rounded-[8px] border p-3 text-left text-sm shadow-sm transition-colors ${
+                className={`focus-ring w-full cursor-pointer rounded-2xl border p-4 text-left text-sm shadow-sm transition-colors ${
                   selectedUser?.id === user.id
-                    ? "border-indigo-300 bg-indigo-50"
-                    : "border-slate-200 bg-white/80 hover:bg-indigo-50/70"
+                    ? "border-blue-200 bg-blue-50 text-blue-950"
+                    : "border-slate-100 bg-white/80 text-slate-700 hover:bg-sky-50"
                 }`}
                 key={user.id}
                 type="button"
                 onClick={() => setSelectedUserId(user.id)}
               >
-                <span className="block font-medium text-slate-950">{user.display_name || user.email}</span>
-                <span className="mt-1 block text-slate-600">
-                  {user.class_level ?? "-"} เลขที่ {user.student_number ?? "-"} | {user.role}
+                <span className="block truncate font-black">{user.display_name || user.email}</span>
+                <span className="mt-1 block truncate text-xs font-bold text-slate-500">
+                  {user.class_level ?? "-"} เลขที่ {user.student_number ?? "-"} • {user.role}
                 </span>
               </button>
             ))}
@@ -131,34 +152,47 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
         </section>
       </aside>
 
-      <section className="space-y-5">
+      <section className="col-span-full space-y-6 lg:col-span-9">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <MetricCard label="ผู้ใช้ทั้งหมด" value={totals.users} tone="blue" />
+          <MetricCard label="บัญชี active" value={totals.active} tone="green" />
+          <MetricCard label="ผู้ดูแลระบบ" value={totals.admins} tone="orange" />
+        </div>
+
         {message ? (
-          <p className="rounded-[8px] border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-900" role="status">{message}</p>
+          <p className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-900" role="status">
+            {message}
+          </p>
         ) : null}
 
         {selectedUser ? (
-          <section className="app-surface rounded-[8px] p-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-950">{selectedUser.display_name || selectedUser.email}</h2>
-                <p className="mt-1 text-sm text-slate-600">{selectedUser.email}</p>
+          <section className="glass-card rounded-[32px] p-6 lg:p-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 shadow-md shadow-orange-100 sm:hidden">
+                  <UserCog aria-hidden="true" size={26} />
+                </div>
+                <h2 className="truncate text-2xl font-black tracking-normal text-blue-950">
+                  {selectedUser.display_name || selectedUser.email}
+                </h2>
+                <p className="mt-1 truncate text-sm font-medium text-slate-500">{selectedUser.email}</p>
               </div>
               <span
-                className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                className={`w-fit rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wider ${
                   selectedUser.status === "active"
-                    ? "border-emerald-100 bg-emerald-50 text-emerald-800"
-                    : "border-rose-100 bg-rose-50 text-rose-800"
+                    ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                    : "border-rose-100 bg-rose-50 text-rose-700"
                 }`}
               >
                 {selectedUser.status}
               </span>
             </div>
 
-            <div className="mt-5 grid gap-3 md:grid-cols-2">
-              <label className="block text-sm font-medium text-slate-700">
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <label className="block text-xs font-black uppercase tracking-widest text-slate-400">
                 ชื่อที่แสดง
                 <input
-                  className="focus-ring field-control mt-1.5 min-h-11 w-full rounded-[8px] px-3 py-2 text-sm"
+                  className="focus-ring field-control mt-2 min-h-12 w-full rounded-2xl px-4 py-3 text-sm"
                   value={selectedUser.display_name ?? ""}
                   onChange={(event) =>
                     setUserList((current) =>
@@ -169,10 +203,10 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
                   }
                 />
               </label>
-              <label className="block text-sm font-medium text-slate-700">
+              <label className="block text-xs font-black uppercase tracking-widest text-slate-400">
                 ชั้น
                 <input
-                  className="focus-ring field-control mt-1.5 min-h-11 w-full rounded-[8px] px-3 py-2 text-sm"
+                  className="focus-ring field-control mt-2 min-h-12 w-full rounded-2xl px-4 py-3 text-sm"
                   value={selectedUser.class_level ?? ""}
                   onChange={(event) =>
                     setUserList((current) =>
@@ -183,10 +217,10 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
                   }
                 />
               </label>
-              <label className="block text-sm font-medium text-slate-700">
+              <label className="block text-xs font-black uppercase tracking-widest text-slate-400">
                 เลขที่
                 <input
-                  className="focus-ring field-control mt-1.5 min-h-11 w-full rounded-[8px] px-3 py-2 text-sm"
+                  className="focus-ring field-control mt-2 min-h-12 w-full rounded-2xl px-4 py-3 text-sm"
                   inputMode="numeric"
                   value={selectedUser.student_number ?? ""}
                   onChange={(event) =>
@@ -201,10 +235,10 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
                 />
               </label>
               <div className="grid grid-cols-2 gap-3">
-                <label className="block text-sm font-medium text-slate-700">
+                <label className="block text-xs font-black uppercase tracking-widest text-slate-400">
                   สิทธิ์
                   <select
-                    className="focus-ring field-control mt-1.5 min-h-11 w-full rounded-[8px] px-3 py-2 text-sm"
+                    className="focus-ring field-control mt-2 min-h-12 w-full rounded-2xl px-4 py-3 text-sm"
                     value={selectedUser.role}
                     onChange={(event) =>
                       setUserList((current) =>
@@ -221,10 +255,10 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
                     <option value="owner">owner</option>
                   </select>
                 </label>
-                <label className="block text-sm font-medium text-slate-700">
+                <label className="block text-xs font-black uppercase tracking-widest text-slate-400">
                   สถานะ
                   <select
-                    className="focus-ring field-control mt-1.5 min-h-11 w-full rounded-[8px] px-3 py-2 text-sm"
+                    className="focus-ring field-control mt-2 min-h-12 w-full rounded-2xl px-4 py-3 text-sm"
                     value={selectedUser.status}
                     onChange={(event) =>
                       setUserList((current) =>
@@ -242,8 +276,9 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
                 </label>
               </div>
             </div>
+
             <button
-              className="focus-ring mt-4 flex min-h-11 cursor-pointer items-center gap-2 rounded-[8px] bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/10 hover:bg-slate-800"
+              className="btn-primary focus-ring mt-6 flex cursor-pointer items-center gap-2 px-5 py-3 text-sm"
               type="button"
               onClick={() => updateUser(selectedUser)}
             >
@@ -254,46 +289,46 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
         ) : null}
 
         {selectedUser ? (
-          <div className="grid gap-5 lg:grid-cols-2">
-            <section className="app-surface rounded-[8px] p-4">
-              <h2 className="flex items-center gap-2 text-base font-semibold text-slate-950">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <section className="glass-card rounded-[32px] p-6">
+              <h2 className="flex items-center gap-2 text-base font-black text-blue-950">
                 <KeyRound aria-hidden="true" size={18} />
                 แก้ไขรหัสผ่าน
               </h2>
               <form className="mt-4 space-y-3" onSubmit={changePassword}>
                 <input
-                  className="focus-ring field-control min-h-11 w-full rounded-[8px] px-3 py-2 text-sm"
+                  className="focus-ring field-control min-h-12 w-full rounded-2xl px-4 py-3 text-sm"
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="รหัสผ่านใหม่"
                   required
                 />
-                <button className="focus-ring min-h-11 w-full cursor-pointer rounded-[8px] bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700">
+                <button className="btn-primary focus-ring w-full cursor-pointer px-4 py-3 text-sm">
                   เปลี่ยนรหัสผ่าน
                 </button>
               </form>
             </section>
 
-            <section className="rounded-[8px] border border-rose-200 bg-white/88 p-4 shadow-sm">
-              <h2 className="flex items-center gap-2 text-base font-semibold text-slate-950">
+            <section className="rounded-[32px] border border-rose-100 bg-white/88 p-6 shadow-sm">
+              <h2 className="flex items-center gap-2 text-base font-black text-blue-950">
                 <Eye aria-hidden="true" size={18} />
                 ดูรหัสผ่าน
               </h2>
               <form className="mt-4 space-y-3" onSubmit={revealPassword}>
                 <input
-                  className="focus-ring field-control min-h-11 w-full rounded-[8px] px-3 py-2 text-sm"
+                  className="focus-ring field-control min-h-12 w-full rounded-2xl px-4 py-3 text-sm"
                   value={reason}
                   onChange={(event) => setReason(event.target.value)}
                   placeholder="เหตุผลในการดูรหัสผ่าน"
                   required
                 />
-                <button className="focus-ring min-h-11 w-full cursor-pointer rounded-[8px] bg-rose-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-rose-600/20 hover:bg-rose-700">
+                <button className="focus-ring min-h-11 w-full cursor-pointer rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-rose-200 transition-colors hover:bg-rose-700">
                   แสดงรหัสผ่าน
                 </button>
               </form>
               {revealedPassword ? (
-                <p className="mt-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 font-mono text-sm text-rose-900">
+                <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 font-mono text-sm font-bold text-rose-900">
                   {revealedPassword}
                 </p>
               ) : null}
@@ -301,35 +336,40 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
           </div>
         ) : null}
 
-        <div className="grid gap-5 lg:grid-cols-2">
-          <section className="app-surface rounded-[8px] p-4">
-            <h2 className="text-base font-semibold text-slate-950">คำติชมทั้งหมด</h2>
-            <div className="mt-4 max-h-80 space-y-3 overflow-auto">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <section className="glass-card rounded-[32px] p-6">
+            <h2 className="flex items-center gap-2 text-base font-black text-blue-950">
+              <MessageSquare aria-hidden="true" size={18} />
+              คำติชมทั้งหมด
+            </h2>
+            <div className="mt-4 max-h-80 space-y-3 overflow-auto pr-1">
               {feedback.map((item) => {
                 const user = userList.find((profile) => profile.id === item.user_id);
                 return (
-                  <article className="rounded-[8px] border border-slate-200 bg-white/70 p-3 text-sm shadow-sm" key={item.id}>
-                    <p className="font-medium text-slate-950">{user?.display_name || user?.email || "ไม่ทราบผู้ใช้"}</p>
-                    <p className="mt-2 leading-6 text-slate-700">{item.message}</p>
+                  <article className="rounded-2xl border border-slate-100 bg-white/75 p-4 text-sm shadow-sm" key={item.id}>
+                    <p className="truncate font-black text-slate-950">{user?.display_name || user?.email || "ไม่ทราบผู้ใช้"}</p>
+                    <p className="mt-2 leading-6 text-slate-600">{item.message}</p>
                   </article>
                 );
               })}
             </div>
           </section>
 
-          <section className="app-surface rounded-[8px] p-4">
-            <h2 className="flex items-center gap-2 text-base font-semibold text-slate-950">
+          <section className="glass-card rounded-[32px] p-6">
+            <h2 className="flex items-center gap-2 text-base font-black text-blue-950">
               <ShieldAlert aria-hidden="true" size={18} />
               Audit logs
             </h2>
-            <div className="mt-4 max-h-80 space-y-3 overflow-auto">
+            <div className="mt-4 max-h-80 space-y-3 overflow-auto pr-1">
               {auditLogs.map((log) => (
-                <article className="rounded-[8px] border border-slate-200 bg-white/70 p-3 text-sm shadow-sm" key={log.id}>
-                  <p className="font-medium text-slate-950">{log.action}</p>
+                <article className="rounded-2xl border border-slate-100 bg-white/75 p-4 text-sm shadow-sm" key={log.id}>
+                  <p className="truncate font-black text-slate-950">{log.action}</p>
                   <p className="mt-1 text-slate-600">
                     {log.entity_type} {log.entity_id ?? ""}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">{new Date(log.created_at).toLocaleString("th-TH")}</p>
+                  <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400">
+                    {new Date(log.created_at).toLocaleString("th-TH")}
+                  </p>
                 </article>
               ))}
             </div>
@@ -337,5 +377,20 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
         </div>
       </section>
     </div>
+  );
+}
+
+function MetricCard({ label, value, tone }: { label: string; value: number; tone: "blue" | "green" | "orange" }) {
+  const colors = {
+    blue: "border-blue-100 bg-blue-50 text-blue-700",
+    green: "border-emerald-100 bg-emerald-50 text-emerald-700",
+    orange: "border-orange-100 bg-orange-50 text-orange-700"
+  };
+
+  return (
+    <section className={`rounded-[28px] border p-5 shadow-sm ${colors[tone]}`}>
+      <p className="text-xs font-black uppercase tracking-widest opacity-80">{label}</p>
+      <p className="mt-2 text-3xl font-black tracking-normal">{value}</p>
+    </section>
   );
 }

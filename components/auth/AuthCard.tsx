@@ -13,24 +13,29 @@ type AuthCardProps = {
 
 export function AuthCard({ title, subtitle, footerHref, footerLabel, footerText, children }: AuthCardProps) {
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4 py-8 soft-grid-bg">
-      <section className="app-surface rounded-[8px] p-4 sm:p-7" style={{ width: "min(calc(100vw - 3rem), 28rem)" }}>
-        <div className="mb-7 flex items-start gap-3">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-[8px] bg-indigo-600 text-white shadow-lg shadow-indigo-600/20">
-            <Umbrella aria-hidden="true" size={24} />
+    <main className="flex min-h-dvh items-center justify-center overflow-hidden bg-sky-50 px-4 py-8">
+      <section className="min-w-0 w-full max-w-lg">
+        <div className="mb-8 text-center">
+          <div className="mx-auto flex size-24 items-center justify-center rounded-[32px] bg-blue-600 text-white shadow-2xl shadow-blue-200">
+            <Umbrella aria-hidden="true" size={48} />
           </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-indigo-700">PCSHSPL</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-normal text-slate-950">{title}</h1>
-            <p className="mt-2 text-sm leading-6 text-slate-600">{subtitle}</p>
+          <h1 className="mt-5 text-4xl font-black tracking-normal text-blue-950 sm:text-5xl">{title}</h1>
+          <p className="mx-auto mt-2 max-w-[18rem] text-[10px] font-bold uppercase tracking-[0.14em] text-blue-500 sm:max-w-none sm:text-xs sm:tracking-[0.2em]">
+            Umbrella Borrowing System • PCSHSPL
+          </p>
+          <p className="mx-auto mt-4 max-w-md text-sm font-medium leading-6 text-slate-500">{subtitle}</p>
+        </div>
+
+        <div className="relative overflow-hidden rounded-[40px] border-4 border-white bg-white p-6 shadow-2xl shadow-blue-900/10 sm:rounded-[48px] sm:p-10">
+          <div className="absolute right-0 top-0 size-32 rounded-full bg-sky-50 blur-3xl" />
+          <div className="relative z-10">
+            {children}
           </div>
         </div>
 
-        {children}
-
-        <p className="mt-6 text-center text-sm text-slate-600">
+        <p className="mt-8 text-center text-sm font-bold text-slate-400">
           {footerText}{" "}
-          <Link className="font-semibold text-indigo-700 hover:text-indigo-800" href={footerHref}>
+          <Link className="font-black text-blue-600 hover:underline" href={footerHref}>
             {footerLabel}
           </Link>
         </p>

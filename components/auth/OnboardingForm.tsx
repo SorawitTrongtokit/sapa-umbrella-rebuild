@@ -56,31 +56,31 @@ export function OnboardingForm({ defaultName }: OnboardingFormProps) {
   }
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
-      <label className="block text-sm font-medium text-slate-700">
+    <form className="space-y-5" onSubmit={handleSubmit}>
+      <label className="block text-xs font-black uppercase tracking-widest text-slate-400">
         ชื่อที่แสดง
         <input
-          className="focus-ring field-control mt-2 min-h-11 w-full rounded-[8px] px-3 py-2.5 text-slate-950"
+          className="focus-ring field-control mt-2 min-h-12 w-full rounded-2xl px-4 py-3 text-base text-slate-950"
           value={displayName}
           onChange={(event) => setDisplayName(event.target.value)}
           maxLength={120}
         />
       </label>
       <div className="grid grid-cols-2 gap-3">
-        <label className="block text-sm font-medium text-slate-700">
+        <label className="block text-xs font-black uppercase tracking-widest text-slate-400">
           ชั้น
           <input
-            className="focus-ring field-control mt-2 min-h-11 w-full rounded-[8px] px-3 py-2.5 text-slate-950"
+            className="focus-ring field-control mt-2 min-h-12 w-full rounded-2xl px-4 py-3 text-base text-slate-950"
             value={classLevel}
             onChange={(event) => setClassLevel(event.target.value)}
             placeholder="เช่น ม.5/1"
             required
           />
         </label>
-        <label className="block text-sm font-medium text-slate-700">
+        <label className="block text-xs font-black uppercase tracking-widest text-slate-400">
           เลขที่
           <input
-            className="focus-ring field-control mt-2 min-h-11 w-full rounded-[8px] px-3 py-2.5 text-slate-950"
+            className="focus-ring field-control mt-2 min-h-12 w-full rounded-2xl px-4 py-3 text-base text-slate-950"
             inputMode="numeric"
             value={studentNumber}
             onChange={(event) => setStudentNumber(event.target.value)}
@@ -88,10 +88,10 @@ export function OnboardingForm({ defaultName }: OnboardingFormProps) {
           />
         </label>
       </div>
-      <label className="block text-sm font-medium text-slate-700">
+      <label className="block text-xs font-black uppercase tracking-widest text-slate-400">
         ตั้งรหัสผ่านสำหรับระบบนี้
         <input
-          className="focus-ring field-control mt-2 min-h-11 w-full rounded-[8px] px-3 py-2.5 text-slate-950"
+          className="focus-ring field-control mt-2 min-h-12 w-full rounded-2xl px-4 py-3 text-base text-slate-950"
           type="password"
           autoComplete="new-password"
           value={password}
@@ -100,10 +100,10 @@ export function OnboardingForm({ defaultName }: OnboardingFormProps) {
         />
       </label>
       {message ? (
-        <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm font-medium text-rose-800" role="alert">{message}</p>
+        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800" role="alert">{message}</p>
       ) : null}
       <button
-        className="focus-ring flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-indigo-600 px-4 py-2.5 font-semibold text-white shadow-lg shadow-indigo-600/20 transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
+        className="btn-primary focus-ring flex w-full cursor-pointer items-center justify-center gap-2 px-4 py-4 text-lg disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
         disabled={isLoading}
         type="submit"
       >
