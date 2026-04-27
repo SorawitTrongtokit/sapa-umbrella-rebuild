@@ -1,14 +1,36 @@
-.next/
-tsconfig.tsbuildinfo
+# dependencies
 node_modules/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# environment
 .env
 .env*.local
 !.env.example
+
+# deploy and local tool state
+.vercel/
+.firebase/
+.agents/
+.codex/
+tmp/
+
+# exported or private data
 data/*.json
 data/*.ndjson
+
+# tests and coverage
 coverage/
 playwright-report/
 test-results/
+
+# logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+firebase-debug.log*

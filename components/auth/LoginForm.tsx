@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LogIn } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
@@ -82,6 +84,11 @@ export function LoginForm() {
             required
           />
         </label>
+        <div className="text-right">
+          <Link className="text-sm font-black text-blue-600 hover:underline" href={"/auth/forgot-password" as Route}>
+            ลืมรหัสผ่าน?
+          </Link>
+        </div>
         {message ? (
           <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900" role="alert">
             {message}
