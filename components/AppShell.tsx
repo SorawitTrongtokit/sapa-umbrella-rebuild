@@ -29,8 +29,8 @@ export function AppShell({ profile, active, title, subtitle, children }: AppShel
   const initials = (profile.display_name || profile.email || "PC").slice(0, 2).toUpperCase();
 
   return (
-    <div className="min-h-dvh bg-sky-50 font-sans">
-      <header className="border-b border-sky-100 bg-white shadow-sm">
+    <div className="animate-page min-h-dvh bg-sky-50 font-sans">
+      <header className="animate-down border-b border-sky-100 bg-white shadow-sm">
         <div className="mx-auto flex min-h-20 max-w-[92rem] flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div className="flex min-w-0 items-center gap-4">
             <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-200">
@@ -62,7 +62,7 @@ export function AppShell({ profile, active, title, subtitle, children }: AppShel
       </header>
 
       <div className="mx-auto grid max-w-[92rem] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:px-8">
-        <aside className="glass-card h-fit rounded-[32px] p-3 lg:sticky lg:top-6">
+        <aside className="glass-card animate-rise h-fit rounded-[32px] p-3 lg:sticky lg:top-6">
           <nav className="flex gap-2 overflow-x-auto pb-1 lg:grid lg:overflow-visible lg:pb-0">
             {visibleItems.map((item) => {
               const Icon = item.icon;
@@ -95,7 +95,7 @@ export function AppShell({ profile, active, title, subtitle, children }: AppShel
           </nav>
         </aside>
 
-        <main className="min-w-0">
+        <main className="animate-rise min-w-0">
           <div className="mb-6 rounded-[24px] border border-sky-100 bg-white/70 px-5 py-4 shadow-sm">
             <p className="text-sm font-medium leading-6 text-slate-500 sm:text-base">{subtitle}</p>
           </div>

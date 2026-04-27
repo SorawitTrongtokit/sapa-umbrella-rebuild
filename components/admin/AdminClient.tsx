@@ -94,9 +94,9 @@ export function AdminClient({ locations, initialUmbrellas, recentTransactions, u
   }
 
   return (
-    <div className="grid grid-cols-12 gap-6">
+    <div className="animate-page grid grid-cols-12 gap-6">
       <aside className="col-span-full space-y-6 lg:col-span-3">
-        <section className="glass-card rounded-[32px] p-6">
+        <section className="glass-card animate-rise rounded-[32px] p-6">
           <h2 className="mb-4 px-3 text-[10px] font-black uppercase tracking-widest text-slate-400">เมนูจัดการ</h2>
           <div className="space-y-2">
             <AdminNavButton active icon={LayoutDashboard} label="แผงควบคุม" />
@@ -106,14 +106,14 @@ export function AdminClient({ locations, initialUmbrellas, recentTransactions, u
           </div>
         </section>
 
-        <section className="rounded-3xl border border-orange-100 bg-orange-50 p-6">
+        <section className="animate-rise rounded-3xl border border-orange-100 bg-orange-50 p-6">
           <h3 className="mb-2 text-sm font-black uppercase text-orange-700">คำเตือน</h3>
           <p className="text-xs font-medium leading-6 text-orange-600">
             การแก้ไขสถานะร่มจะถูกบันทึกใน audit log ทุกครั้ง โปรดตรวจสอบร่มจริงก่อนดำเนินการ
           </p>
         </section>
 
-        <section className="glass-card rounded-[32px] p-6">
+        <section className="glass-card animate-rise rounded-[32px] p-6">
           <h2 className="text-base font-black text-blue-950">ทำรายการผู้ดูแล</h2>
           {pendingAction ? (
             <form className="mt-4 space-y-3" onSubmit={submitAction}>
@@ -163,7 +163,11 @@ export function AdminClient({ locations, initialUmbrellas, recentTransactions, u
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {groups.map((group, index) => (
-            <section className="glass-card rounded-[28px] p-5" key={group.location.id}>
+            <section
+              className="glass-card animate-rise rounded-[28px] p-5"
+              key={group.location.id}
+              style={{ animationDelay: `${index * 45}ms` }}
+            >
               <div className="flex items-center gap-3">
                 <span
                   className={`flex size-10 items-center justify-center rounded-2xl text-sm font-black text-white shadow-lg ${
@@ -185,7 +189,7 @@ export function AdminClient({ locations, initialUmbrellas, recentTransactions, u
           ))}
         </div>
 
-        <section className="overflow-hidden rounded-[32px] border border-sky-100 bg-white shadow-sm">
+        <section className="animate-rise overflow-hidden rounded-[32px] border border-sky-100 bg-white shadow-sm">
           <div className="flex flex-col gap-4 border-b border-sky-50 bg-slate-50/40 p-6 sm:flex-row sm:items-center sm:justify-between lg:p-8">
             <div>
               <h2 className="text-2xl font-black tracking-normal text-blue-950">รายการร่มทั้งหมด</h2>
@@ -251,7 +255,7 @@ export function AdminClient({ locations, initialUmbrellas, recentTransactions, u
           </div>
         </section>
 
-        <section className="glass-card rounded-[32px] p-6">
+        <section className="glass-card animate-rise rounded-[32px] p-6">
           <h2 className="text-base font-black text-blue-950">ประวัติล่าสุด</h2>
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {recentTransactions.slice(0, 12).map((transaction) => {

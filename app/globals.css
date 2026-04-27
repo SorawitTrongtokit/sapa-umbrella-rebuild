@@ -98,12 +98,14 @@ a {
   background: #f8fafc;
   color: #0f172a;
   transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
     border-color 160ms ease,
     box-shadow 160ms ease,
     background-color 160ms ease;
 }
 
 .field-control:focus {
+  transform: translateY(-1px);
   border-color: transparent;
   background: #ffffff;
   box-shadow: 0 0 0 3px rgb(37 99 235 / 0.24);
@@ -119,6 +121,16 @@ a {
   border: 1px solid rgb(224 242 254 / 0.95);
   background: rgb(255 255 255 / 0.88);
   box-shadow: 0 18px 45px rgb(30 64 175 / 0.06);
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    background-color 220ms ease;
+}
+
+.glass-card:hover {
+  border-color: rgb(186 230 253 / 0.95);
+  box-shadow: 0 24px 58px rgb(30 64 175 / 0.09);
 }
 
 .btn-primary {
@@ -129,13 +141,15 @@ a {
   font-weight: 800;
   box-shadow: 0 18px 30px rgb(37 99 235 / 0.18);
   transition:
-    transform 160ms ease,
-    background-color 160ms ease,
-    box-shadow 160ms ease;
+    transform 190ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 190ms ease,
+    box-shadow 190ms ease;
 }
 
 .btn-primary:hover {
+  transform: translateY(-1px);
   background: #1d4ed8;
+  box-shadow: 0 22px 38px rgb(37 99 235 / 0.23);
 }
 
 .btn-primary:active {
@@ -150,16 +164,134 @@ a {
   color: var(--accent);
   font-weight: 800;
   transition:
-    transform 160ms ease,
-    background-color 160ms ease;
+    transform 190ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 190ms ease,
+    box-shadow 190ms ease;
 }
 
 .btn-secondary:hover {
+  transform: translateY(-1px);
   background: #f0f9ff;
+  box-shadow: 0 14px 26px rgb(37 99 235 / 0.1);
 }
 
 .btn-secondary:active {
   transform: scale(0.98);
+}
+
+.animate-page {
+  animation: page-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-rise {
+  animation: rise-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-pop {
+  animation: pop-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-down {
+  animation: down-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.status-pulse {
+  animation: status-pulse 1.8s ease-in-out infinite;
+}
+
+.brand-orb {
+  animation:
+    pop-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both,
+    float-soft 5.5s ease-in-out 300ms infinite;
+}
+
+.soft-shine {
+  position: relative;
+  isolation: isolate;
+}
+
+.soft-shine::after {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(110deg, transparent 20%, rgb(255 255 255 / 0.22) 46%, transparent 68%);
+  transform: translateX(-120%);
+  animation: shine-pass 4.8s ease-in-out infinite;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes down-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(37 99 235 / 0.32);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgb(37 99 235 / 0);
+  }
+}
+
+@keyframes shine-pass {
+  0%,
+  55% {
+    transform: translateX(-120%);
+  }
+  78%,
+  100% {
+    transform: translateX(120%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

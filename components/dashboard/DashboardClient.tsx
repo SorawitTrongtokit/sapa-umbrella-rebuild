@@ -81,19 +81,44 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
   );
 
   async function actOnUmbrella(umbrella: Umbrella) {
+    const previousUmbrellas = umbrellas;
     setBusyUmbrella(umbrella.id);
-    setMessage("");
     const isMine = umbrella.borrowed_by === profile.id || activeBorrowIds.has(umbrella.id);
     const endpoint = isMine ? "return" : "borrow";
-    const response = await fetch(`/api/umbrellas/${umbrella.id}/${endpoint}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(isMine ? { returnLocationId: umbrella.location_id } : {})
-    });
-    const payload = (await response.json()) as { ok: boolean; error?: string };
-    setBusyUmbrella(null);
     setSelectedUmbrella(null);
-    setMessage(payload.ok ? (isMine ? "คืนร่มเรียบร้อย" : "ยืมร่มเรียบร้อย") : payload.error ?? "ทำรายการไม่สำเร็จ");
+    setMessage(isMine ? "กำลังคืนร่ม..." : "กำลังยืมร่ม...");
+    setUmbrellas((current) =>
+      current.map((item) =>
+        item.id === umbrella.id
+          ? {
+              ...item,
+              status: isMine ? "available" : "borrowed",
+              borrowed_by: isMine ? null : profile.id,
+              borrowed_transaction_id: isMine ? null : item.borrowed_transaction_id
+            }
+          : item
+      )
+    );
+
+    try {
+      const response = await fetch(`/api/umbrellas/${umbrella.id}/${endpoint}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(isMine ? { returnLocationId: umbrella.location_id } : {})
+      });
+      const payload = (await response.json()) as { ok: boolean; error?: string };
+      if (!payload.ok) {
+        setUmbrellas(previousUmbrellas);
+        setMessage(payload.error ?? "ทำรายการไม่สำเร็จ");
+        return;
+      }
+      setMessage(isMine ? "คืนร่มเรียบร้อย" : "ยืมร่มเรียบร้อย");
+    } catch {
+      setUmbrellas(previousUmbrellas);
+      setMessage("เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่");
+    } finally {
+      setBusyUmbrella(null);
+    }
   }
 
   async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
@@ -126,14 +151,14 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
   }
 
   return (
-    <div className="grid grid-cols-12 gap-6">
+    <div className="animate-page grid grid-cols-12 gap-6">
       <aside className="col-span-full space-y-6 lg:col-span-3">
         <section className="glass-card rounded-[32px] p-6">
           <h2 className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-500">
-            <span className="size-2 rounded-full bg-blue-500" />
+            <span className="status-pulse size-2 rounded-full bg-blue-500" />
             สถานะปัจจุบันของคุณ
           </h2>
-          <div className="relative overflow-hidden rounded-2xl bg-blue-600 p-6 text-white shadow-xl shadow-blue-200">
+          <div className="soft-shine relative overflow-hidden rounded-2xl bg-blue-600 p-6 text-white shadow-xl shadow-blue-200">
             <div className="relative z-10">
               <p className="mb-1 text-xs font-medium opacity-80">
                 {activeUmbrella ? "กำลังยืมร่มหมายเลข" : "ยังไม่มีร่มที่กำลังยืม"}
@@ -248,7 +273,11 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {groups.map((group, index) => (
-            <section className="glass-card rounded-[32px] p-5 shadow-xl shadow-blue-900/5" key={group.location.id}>
+            <section
+              className="glass-card animate-rise rounded-[32px] p-5 shadow-xl shadow-blue-900/5"
+              key={group.location.id}
+              style={{ animationDelay: `${index * 45}ms` }}
+            >
               <header className="mb-6 flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <span
@@ -296,14 +325,14 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
       </section>
 
       {selectedUmbrella ? (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+        <div className="animate-page fixed inset-0 z-[100] flex items-center justify-center p-6">
           <button
             className="absolute inset-0 bg-blue-950/40 backdrop-blur-md"
             type="button"
             aria-label="ปิดหน้าต่าง"
             onClick={() => setSelectedUmbrella(null)}
           />
-          <section className="relative w-full max-w-sm rounded-[40px] border-4 border-white bg-white p-8 shadow-2xl sm:p-10">
+          <section className="animate-pop relative w-full max-w-sm rounded-[40px] border-4 border-white bg-white p-8 shadow-2xl sm:p-10">
             <button
               className="focus-ring absolute right-5 top-5 flex size-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 hover:bg-slate-200"
               type="button"

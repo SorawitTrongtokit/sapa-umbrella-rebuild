@@ -104,9 +104,9 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
   }
 
   return (
-    <div className="grid grid-cols-12 gap-6">
+    <div className="animate-page grid grid-cols-12 gap-6">
       <aside className="col-span-full space-y-6 lg:col-span-3 lg:sticky lg:top-6 lg:self-start">
-        <section className="glass-card rounded-[32px] p-6">
+        <section className="glass-card animate-rise rounded-[32px] p-6">
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-black text-blue-950">ผู้ใช้ทั้งหมด</h2>
@@ -154,9 +154,9 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
 
       <section className="col-span-full space-y-6 lg:col-span-9">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <MetricCard label="ผู้ใช้ทั้งหมด" value={totals.users} tone="blue" />
-          <MetricCard label="บัญชี active" value={totals.active} tone="green" />
-          <MetricCard label="ผู้ดูแลระบบ" value={totals.admins} tone="orange" />
+          <MetricCard label="ผู้ใช้ทั้งหมด" value={totals.users} tone="blue" delay={0} />
+          <MetricCard label="บัญชี active" value={totals.active} tone="green" delay={45} />
+          <MetricCard label="ผู้ดูแลระบบ" value={totals.admins} tone="orange" delay={90} />
         </div>
 
         {message ? (
@@ -166,7 +166,7 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
         ) : null}
 
         {selectedUser ? (
-          <section className="glass-card rounded-[32px] p-6 lg:p-8">
+          <section className="glass-card animate-rise rounded-[32px] p-6 lg:p-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 shadow-md shadow-orange-100 sm:hidden">
@@ -290,7 +290,7 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
 
         {selectedUser ? (
           <div className="grid gap-6 lg:grid-cols-2">
-            <section className="glass-card rounded-[32px] p-6">
+            <section className="glass-card animate-rise rounded-[32px] p-6">
               <h2 className="flex items-center gap-2 text-base font-black text-blue-950">
                 <KeyRound aria-hidden="true" size={18} />
                 แก้ไขรหัสผ่าน
@@ -310,7 +310,7 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
               </form>
             </section>
 
-            <section className="rounded-[32px] border border-rose-100 bg-white/88 p-6 shadow-sm">
+            <section className="animate-rise rounded-[32px] border border-rose-100 bg-white/88 p-6 shadow-sm">
               <h2 className="flex items-center gap-2 text-base font-black text-blue-950">
                 <Eye aria-hidden="true" size={18} />
                 ดูรหัสผ่าน
@@ -337,7 +337,7 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
         ) : null}
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <section className="glass-card rounded-[32px] p-6">
+          <section className="glass-card animate-rise rounded-[32px] p-6">
             <h2 className="flex items-center gap-2 text-base font-black text-blue-950">
               <MessageSquare aria-hidden="true" size={18} />
               คำติชมทั้งหมด
@@ -355,7 +355,7 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
             </div>
           </section>
 
-          <section className="glass-card rounded-[32px] p-6">
+          <section className="glass-card animate-rise rounded-[32px] p-6">
             <h2 className="flex items-center gap-2 text-base font-black text-blue-950">
               <ShieldAlert aria-hidden="true" size={18} />
               Audit logs
@@ -380,7 +380,17 @@ export function OwnerClient({ users, feedback, auditLogs }: OwnerClientProps) {
   );
 }
 
-function MetricCard({ label, value, tone }: { label: string; value: number; tone: "blue" | "green" | "orange" }) {
+function MetricCard({
+  label,
+  value,
+  tone,
+  delay
+}: {
+  label: string;
+  value: number;
+  tone: "blue" | "green" | "orange";
+  delay: number;
+}) {
   const colors = {
     blue: "border-blue-100 bg-blue-50 text-blue-700",
     green: "border-emerald-100 bg-emerald-50 text-emerald-700",
@@ -388,7 +398,7 @@ function MetricCard({ label, value, tone }: { label: string; value: number; tone
   };
 
   return (
-    <section className={`rounded-[28px] border p-5 shadow-sm ${colors[tone]}`}>
+    <section className={`animate-rise rounded-[28px] border p-5 shadow-sm ${colors[tone]}`} style={{ animationDelay: `${delay}ms` }}>
       <p className="text-xs font-black uppercase tracking-widest opacity-80">{label}</p>
       <p className="mt-2 text-3xl font-black tracking-normal">{value}</p>
     </section>
