@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, Check, MessageSquare, Save, Umbrella as UmbrellaIcon, X, XCircle } from "lucide-react";
+import { AlertCircle, Check, Coffee, Dumbbell, Home, MapPin, MessageSquare, Save, Umbrella as UmbrellaIcon, Utensils, X, XCircle } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { groupUmbrellas, statusLabel } from "@/lib/umbrella";
 import type { BorrowTransaction, Location, Profile, Umbrella, UmbrellaStatus } from "@/lib/types";
@@ -23,6 +23,12 @@ const tileStyles: Record<UmbrellaStatus, string> = {
   available: "bg-emerald-500 text-white shadow-emerald-200 hover:bg-emerald-600",
   borrowed: "bg-rose-500 text-white shadow-rose-200 hover:bg-rose-600",
   disabled: "bg-slate-300 text-white shadow-none"
+};
+
+const locationConfigs: Record<string, { icon: typeof Home; gradient: string }> = {
+  dome: { icon: Home, gradient: "premium-gradient-2" },
+  sports_center: { icon: Dumbbell, gradient: "premium-gradient-1" },
+  cafeteria: { icon: Utensils, gradient: "premium-gradient-3" }
 };
 
 export function DashboardClient({ profile, locations, initialUmbrellas, activeBorrows }: DashboardClientProps) {
@@ -193,7 +199,7 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
             <div className="h-2 overflow-hidden rounded-full bg-slate-100">
               <div
                 className="h-full rounded-full bg-emerald-400 transition-all duration-700"
-                style={{ width: `${umbrellas.length ? (counts.available / umbrellas.length) * 100 : 0}%` }}
+                style={{ "--progress-width": `${umbrellas.length ? (counts.available / umbrellas.length) * 100 : 0}%` } as React.CSSProperties}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -276,24 +282,26 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
             <section
               className="glass-card animate-rise rounded-[32px] p-5 shadow-xl shadow-blue-900/5"
               key={group.location.id}
-              style={{ animationDelay: `${index * 45}ms` }}
+              style={{ "--rise-delay": `${index * 45}ms` } as React.CSSProperties}
             >
               <header className="mb-6 flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <span
-                    className={`flex size-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black text-white shadow-lg ${
-                      index === 0
-                        ? "bg-orange-400 shadow-orange-100"
-                        : index === 1
-                          ? "bg-blue-400 shadow-blue-100"
-                          : "bg-purple-400 shadow-purple-100"
+                    className={`flex size-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ${
+                      locationConfigs[group.location.id]?.gradient ?? "bg-blue-400 shadow-blue-100"
                     }`}
                   >
-                    {index + 1}
+                    {(() => {
+                      const Icon = locationConfigs[group.location.id]?.icon ?? MapPin;
+                      return <Icon size={20} strokeWidth={2.5} />;
+                    })()}
                   </span>
-                  <h2 className="truncate text-xl font-black tracking-normal text-blue-950">{group.location.name_th}</h2>
+                  <div>
+                    <h2 className="truncate text-xl font-black tracking-normal text-blue-950">{group.location.name_th}</h2>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">พื้นที่จุดบริการ</p>
+                  </div>
                 </div>
-                <span className="shrink-0 rounded-xl border border-slate-200 bg-white px-2 py-1 text-[10px] font-black uppercase tracking-normal text-slate-400">
+                <span className="shrink-0 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-black uppercase tracking-normal text-slate-400">
                   {group.umbrellas.length} คัน
                 </span>
               </header>

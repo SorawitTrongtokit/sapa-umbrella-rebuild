@@ -21,13 +21,17 @@ function decode(value: string, encoding: "base64" | "hex" = "base64") {
   return Buffer.from(value, encoding);
 }
 
+function isPlausibleDecryptedPassword(value: string) {
+  return value.length > 0 && value.length <= 128 && !/[\u0000-\u001f\u007f\ufffd]/.test(value);
+}
+
 export function decryptLegacyPassword(candidate: LegacyPasswordCandidate, key: string): string | null {
   if (!candidate) return null;
 
   if (typeof candidate === "string") {
     try {
       const cryptoJsPlain = CryptoJS.AES.decrypt(candidate, key).toString(CryptoJS.enc.Utf8);
-      if (cryptoJsPlain) return cryptoJsPlain;
+      if (isPlausibleDecryptedPassword(cryptoJsPlain)) return cryptoJsPlain;
     } catch {
       return null;
     }
@@ -49,11 +53,13 @@ export function decryptLegacyPassword(candidate: LegacyPasswordCandidate, key: s
       if (!tag) return null;
       const decipher = createDecipheriv("aes-256-gcm", sha256Key(key), decode(iv, encoding));
       decipher.setAuthTag(decode(tag, encoding));
-      return Buffer.concat([decipher.update(decode(ciphertext, encoding)), decipher.final()]).toString("utf8");
+      const plain = Buffer.concat([decipher.update(decode(ciphertext, encoding)), decipher.final()]).toString("utf8");
+      return isPlausibleDecryptedPassword(plain) ? plain : null;
     }
 
     const decipher = createDecipheriv("aes-256-cbc", sha256Key(key), decode(iv, encoding));
-    return Buffer.concat([decipher.update(decode(ciphertext, encoding)), decipher.final()]).toString("utf8");
+    const plain = Buffer.concat([decipher.update(decode(ciphertext, encoding)), decipher.final()]).toString("utf8");
+    return isPlausibleDecryptedPassword(plain) ? plain : null;
   } catch {
     return null;
   }

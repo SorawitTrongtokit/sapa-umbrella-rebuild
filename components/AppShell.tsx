@@ -1,12 +1,12 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { LayoutDashboard, MessageSquare, Shield, Umbrella, User, UserCog, type LucideIcon } from "lucide-react";
+import { BarChart3, LayoutDashboard, MessageSquare, Shield, Umbrella, User, UserCog, type LucideIcon } from "lucide-react";
 import type { AppRole, Profile } from "@/lib/types";
 import { SignOutButton } from "@/components/SignOutButton";
 
 type AppShellProps = {
   profile: Profile;
-  active: "dashboard" | "admin" | "owner";
+  active: "dashboard" | "admin" | "owner" | "analytics";
   title: string;
   subtitle: string;
   children: React.ReactNode;
@@ -14,13 +14,14 @@ type AppShellProps = {
 
 const navItems: Array<{
   href: Route;
-  key: "dashboard" | "admin" | "owner";
+  key: "dashboard" | "admin" | "owner" | "analytics";
   label: string;
   icon: LucideIcon;
   roles: AppRole[];
 }> = [
   { href: "/dashboard", key: "dashboard", label: "ร่มทั้งหมด", icon: LayoutDashboard, roles: ["user", "admin", "owner"] },
   { href: "/admin", key: "admin", label: "ผู้ดูแล", icon: Shield, roles: ["admin", "owner"] },
+  { href: "/owner/analytics" as Route, key: "analytics", label: "ข้อมูลสถิติ", icon: BarChart3, roles: ["admin", "owner"] },
   { href: "/owner", key: "owner", label: "Owner", icon: UserCog, roles: ["owner"] }
 ];
 
@@ -50,9 +51,11 @@ export function AppShell({ profile, active, title, subtitle, children }: AppShel
                 {profile.class_level ?? "PCSHSPL"} {profile.student_number ? `เลขที่ ${profile.student_number}` : ""} • {profile.role}
               </p>
             </div>
-            <div className="flex min-h-12 items-center justify-between gap-3 rounded-full border-2 border-white bg-orange-100 px-4 py-2 text-sm text-orange-700 shadow-md sm:justify-start">
-              <span className="font-black">{initials}</span>
-              <span className="shrink-0 rounded-full bg-white/80 px-2.5 py-1 text-xs font-black uppercase tracking-normal text-blue-700">
+            <div className="flex min-h-12 items-center justify-between gap-3 rounded-2xl border-2 border-white bg-white/60 px-4 py-2 text-sm text-slate-700 shadow-xl shadow-blue-900/5 backdrop-blur-md sm:justify-start">
+              <div className="flex size-8 items-center justify-center rounded-xl premium-gradient-2 font-black text-white shadow-lg shadow-orange-100">
+                {initials}
+              </div>
+              <span className="shrink-0 rounded-lg bg-blue-50 px-2 py-1 text-[10px] font-black uppercase tracking-normal text-blue-600">
                 {profile.role}
               </span>
             </div>
@@ -69,10 +72,10 @@ export function AppShell({ profile, active, title, subtitle, children }: AppShel
               const isActive = active === item.key;
               return (
                 <Link
-                  className={`focus-ring flex min-h-12 shrink-0 items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-colors ${
+                  className={`focus-ring flex min-h-12 shrink-0 items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-all ${
                     isActive
-                      ? "bg-blue-600 text-white shadow-lg shadow-blue-100"
-                      : "text-slate-600 hover:bg-sky-50 hover:text-blue-800"
+                      ? "premium-gradient-1 text-white shadow-xl shadow-blue-200"
+                      : "text-slate-500 hover:bg-sky-50 hover:text-blue-700"
                   }`}
                   href={item.href}
                   key={item.href}

@@ -294,6 +294,47 @@ a {
   }
 }
 
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: #f1f5f9;
+}
+
+.skeleton::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  content: "";
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  animation: skeleton-shimmer 1.6s infinite linear;
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.premium-gradient-1 {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.premium-gradient-2 {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+.premium-gradient-3 {
+  background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
