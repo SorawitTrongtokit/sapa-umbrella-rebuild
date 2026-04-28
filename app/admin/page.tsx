@@ -1,29 +1,42 @@
 import { redirect } from "next/navigation";
 import { AdminClient } from "@/components/admin/AdminClient";
 import { AppShell } from "@/components/AppShell";
-import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase-server";
+import { getAuthIdentity } from "@/lib/auth";
+import { getSql } from "@/lib/db";
 import type { BorrowTransaction, Location, Profile, Umbrella } from "@/lib/types";
 
 export default async function AdminPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const user = await getAuthIdentity();
 
   if (!user) redirect("/auth/login");
 
-  const service = createSupabaseServiceClient();
-  const profileResult = await service.from("profiles").select("*").eq("id", user.id).single();
-  const profile = profileResult.data as Profile | null;
+  const sql = getSql();
+  const [pageData] = await sql<{
+    profile: Profile | null;
+    locations: Location[];
+    umbrellas: Umbrella[];
+    recent_transactions: BorrowTransaction[];
+    users: Profile[];
+  }[]>`
+    select
+      (select to_jsonb(p) from public.profiles p where p.id = ${user.id}) as profile,
+      coalesce((select jsonb_agg(l order by l.sort_order) from public.locations l), '[]'::jsonb) as locations,
+      coalesce((select jsonb_agg(u order by u.id) from public.umbrellas u), '[]'::jsonb) as umbrellas,
+      coalesce((
+        select jsonb_agg(t order by t.borrowed_at desc)
+        from (
+          select *
+          from public.borrow_transactions
+          order by borrowed_at desc
+          limit 40
+        ) t
+      ), '[]'::jsonb) as recent_transactions,
+      coalesce((select jsonb_agg(p order by p.class_level, p.student_number, p.email) from public.profiles p), '[]'::jsonb) as users
+  `;
+
+  const profile = pageData.profile;
   if (!profile?.onboarding_completed) redirect("/onboarding");
   if (profile.role !== "admin" && profile.role !== "owner") redirect("/dashboard");
-
-  const [locationResult, umbrellaResult, txResult, usersResult] = await Promise.all([
-    service.from("locations").select("*").order("sort_order", { ascending: true }),
-    service.from("umbrellas").select("*").order("id", { ascending: true }),
-    service.from("borrow_transactions").select("*").order("borrowed_at", { ascending: false }).limit(40),
-    service.from("profiles").select("*").order("class_level", { ascending: true })
-  ]);
 
   return (
     <AppShell
@@ -33,10 +46,10 @@ export default async function AdminPage() {
       subtitle="เปิด ปิด หรือ override สถานะร่ม พร้อมบันทึก audit log ทุกครั้ง"
     >
       <AdminClient
-        initialUmbrellas={(umbrellaResult.data ?? []) as Umbrella[]}
-        locations={(locationResult.data ?? []) as Location[]}
-        recentTransactions={(txResult.data ?? []) as BorrowTransaction[]}
-        users={(usersResult.data ?? []) as Profile[]}
+        initialUmbrellas={pageData.umbrellas}
+        locations={pageData.locations}
+        recentTransactions={pageData.recent_transactions}
+        users={pageData.users}
       />
     </AppShell>
   );

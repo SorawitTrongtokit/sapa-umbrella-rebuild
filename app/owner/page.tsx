@@ -1,28 +1,48 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { OwnerClient } from "@/components/owner/OwnerClient";
-import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase-server";
+import { getAuthIdentity } from "@/lib/auth";
+import { getSql } from "@/lib/db";
 import type { AuditLog, Feedback, Profile } from "@/lib/types";
 
 export default async function OwnerPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const user = await getAuthIdentity();
 
   if (!user) redirect("/auth/login");
 
-  const service = createSupabaseServiceClient();
-  const profileResult = await service.from("profiles").select("*").eq("id", user.id).single();
-  const profile = profileResult.data as Profile | null;
+  const sql = getSql();
+  const [pageData] = await sql<{
+    profile: Profile | null;
+    users: Profile[];
+    feedback: Feedback[];
+    audit_logs: AuditLog[];
+  }[]>`
+    select
+      (select to_jsonb(p) from public.profiles p where p.id = ${user.id}) as profile,
+      coalesce((select jsonb_agg(p order by p.created_at desc) from public.profiles p), '[]'::jsonb) as users,
+      coalesce((
+        select jsonb_agg(f order by f.created_at desc)
+        from (
+          select *
+          from public.feedback
+          order by created_at desc
+          limit 100
+        ) f
+      ), '[]'::jsonb) as feedback,
+      coalesce((
+        select jsonb_agg(a order by a.created_at desc)
+        from (
+          select *
+          from public.audit_logs
+          order by created_at desc
+          limit 150
+        ) a
+      ), '[]'::jsonb) as audit_logs
+  `;
+
+  const profile = pageData.profile;
   if (!profile?.onboarding_completed) redirect("/onboarding");
   if (profile.role !== "owner") redirect("/dashboard");
-
-  const [usersResult, feedbackResult, auditResult] = await Promise.all([
-    service.from("profiles").select("*").order("created_at", { ascending: false }),
-    service.from("feedback").select("*").order("created_at", { ascending: false }).limit(100),
-    service.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(150)
-  ]);
 
   return (
     <AppShell
@@ -32,9 +52,9 @@ export default async function OwnerPage() {
       subtitle="จัดการผู้ใช้ทั้งหมด ดูรหัสผ่านแบบมี audit log และตรวจสอบคำติชม"
     >
       <OwnerClient
-        auditLogs={(auditResult.data ?? []) as AuditLog[]}
-        feedback={(feedbackResult.data ?? []) as Feedback[]}
-        users={(usersResult.data ?? []) as Profile[]}
+        auditLogs={pageData.audit_logs}
+        feedback={pageData.feedback}
+        users={pageData.users}
       />
     </AppShell>
   );

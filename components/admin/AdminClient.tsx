@@ -50,7 +50,7 @@ export function AdminClient({ locations, initialUmbrellas, recentTransactions, u
     const supabase = createSupabaseBrowserClient();
     const channel = supabase
       .channel("admin:umbrellas")
-      .on("postgres_changes", { event: "*", schema: "public", table: "umbrellas" }, (payload) => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "umbrellas" }, (payload: { new: Record<string, unknown> }) => {
         const next = payload.new as Umbrella;
         if (!next?.id) return;
         setUmbrellas((current) =>

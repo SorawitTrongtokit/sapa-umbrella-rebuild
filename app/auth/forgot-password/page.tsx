@@ -1,13 +1,10 @@
 import { redirect } from "next/navigation";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getAuthIdentity } from "@/lib/auth";
 
 export default async function ForgotPasswordPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const user = await getAuthIdentity();
 
   if (user) redirect("/dashboard");
 

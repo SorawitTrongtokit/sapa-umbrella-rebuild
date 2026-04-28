@@ -1,8 +1,9 @@
 import { type NextRequest } from "next/server";
 import { z } from "zod";
+import { getCurrentUser } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
 import { getSql } from "@/lib/db";
-import { HttpError, jsonError, jsonOk, requestMeta } from "@/lib/http";
+import { jsonError, jsonOk, requestMeta } from "@/lib/http";
 import { assertPasswordStrength, encryptPassword } from "@/lib/password-vault";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase-server";
 import { passwordSchema } from "@/lib/validation";
@@ -12,15 +13,7 @@ export async function POST(request: NextRequest) {
     const body = passwordSchema.parse(await request.json());
     assertPasswordStrength(body.password);
 
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-      error: userError
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      throw new HttpError(401, "กรุณาเปิดลิงก์ตั้งรหัสผ่านใหม่จากอีเมลอีกครั้ง");
-    }
+    const user = await getCurrentUser();
 
     const service = createSupabaseServiceClient();
     const { error: updateError } = await service.auth.admin.updateUserById(user.id, {
@@ -67,6 +60,7 @@ export async function POST(request: NextRequest) {
       userAgent: meta.userAgent
     });
 
+    const supabase = await createSupabaseServerClient();
     await supabase.auth.signOut();
 
     return jsonOk({ userId: user.id });

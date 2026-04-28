@@ -1,13 +1,11 @@
 import { redirect } from "next/navigation";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { OnboardingForm } from "@/components/auth/OnboardingForm";
-import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase-server";
+import { getAuthIdentity } from "@/lib/auth";
+import { createSupabaseServiceClient } from "@/lib/supabase-server";
 
 export default async function OnboardingPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const user = await getAuthIdentity();
 
   if (!user) redirect("/auth/login");
 
@@ -28,7 +26,7 @@ export default async function OnboardingPage() {
       footerLabel="กลับไปเข้าสู่ระบบ"
       footerText="ต้องการเปลี่ยนบัญชี?"
     >
-      <OnboardingForm defaultName={profile?.display_name ?? user.user_metadata?.name ?? ""} />
+      <OnboardingForm defaultName={profile?.display_name ?? ""} />
     </AuthCard>
   );
 }

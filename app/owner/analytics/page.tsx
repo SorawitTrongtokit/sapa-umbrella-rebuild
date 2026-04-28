@@ -1,15 +1,12 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
-import { AnalyticsDashboard } from "../../../components/owner/AnalyticsDashboard";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { AnalyticsDashboard } from "@/components/owner/AnalyticsDashboard";
+import { getAuthIdentity } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import type { Profile } from "@/lib/types";
 
 export default async function AnalyticsPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const user = await getAuthIdentity();
 
   if (!user) redirect("/auth/login");
 
@@ -21,47 +18,48 @@ export default async function AnalyticsPage() {
   if (!profile?.onboarding_completed) redirect("/onboarding");
   if (profile.role !== "owner" && profile.role !== "admin") redirect("/dashboard");
 
-  // Aggregated Data for Analytics
-  const [stats] = await sql<{
-    total_borrows: number;
-    active_borrows: number;
-    total_users: number;
-    total_umbrellas: number;
-  }[]>`
-    select
-      (select count(*) from public.borrow_transactions) as total_borrows,
-      (select count(*) from public.borrow_transactions where status = 'active') as active_borrows,
-      (select count(*) from public.profiles) as total_users,
-      (select count(*) from public.umbrellas) as total_umbrellas
-  `;
+  const [statsRows, locationStats, dailyStats] = await Promise.all([
+    sql<{
+      total_borrows: number;
+      active_borrows: number;
+      total_users: number;
+      total_umbrellas: number;
+    }[]>`
+      select
+        (select count(*) from public.borrow_transactions) as total_borrows,
+        (select count(*) from public.borrow_transactions where status = 'active') as active_borrows,
+        (select count(*) from public.profiles) as total_users,
+        (select count(*) from public.umbrellas) as total_umbrellas
+    `,
+    sql<{
+      location_id: string;
+      name_th: string;
+      count: number;
+    }[]>`
+      select
+        l.id as location_id,
+        l.name_th,
+        count(bt.id) as count
+      from public.locations l
+      left join public.borrow_transactions bt on bt.borrow_location_id = l.id
+      group by l.id, l.name_th
+      order by count desc
+    `,
+    sql<{
+      date: string;
+      count: number;
+    }[]>`
+      select
+        to_char(date_trunc('day', borrowed_at), 'YYYY-MM-DD') as date,
+        count(*) as count
+      from public.borrow_transactions
+      where borrowed_at > now() - interval '7 days'
+      group by date
+      order by date asc
+    `
+  ]);
 
-  const locationStats = await sql<{
-    location_id: string;
-    name_th: string;
-    count: number;
-  }[]>`
-    select 
-      l.id as location_id,
-      l.name_th,
-      count(bt.id) as count
-    from public.locations l
-    left join public.borrow_transactions bt on bt.borrow_location_id = l.id
-    group by l.id, l.name_th
-    order by count desc
-  `;
-
-  const dailyStats = await sql<{
-    date: string;
-    count: number;
-  }[]>`
-    select 
-      to_char(date_trunc('day', borrowed_at), 'YYYY-MM-DD') as date,
-      count(*) as count
-    from public.borrow_transactions
-    where borrowed_at > now() - interval '7 days'
-    group by date
-    order by date asc
-  `;
+  const [stats] = statsRows;
 
   return (
     <AppShell

@@ -35,7 +35,6 @@ export function UpdatePasswordForm() {
     }
 
     router.replace("/auth/login?message=ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว กรุณาเข้าสู่ระบบอีกครั้ง");
-    router.refresh();
   }
 
   return (

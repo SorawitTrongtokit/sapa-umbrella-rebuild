@@ -15,6 +15,7 @@ tsconfig.tsbuildinfo
 # deploy and local tool state
 .vercel/
 .firebase/
+supabase/.temp/
 .agents/
 .codex/
 tmp/

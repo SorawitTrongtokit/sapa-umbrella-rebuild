@@ -2,31 +2,35 @@ import { redirect } from "next/navigation";
 import { CircleAlert } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
-import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase-server";
+import { getAuthIdentity } from "@/lib/auth";
+import { getSql } from "@/lib/db";
 import type { BorrowTransaction, Location, Profile, Umbrella } from "@/lib/types";
 
 export default async function DashboardPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const user = await getAuthIdentity();
 
   if (!user) redirect("/auth/login");
 
-  const service = createSupabaseServiceClient();
-  const [profileResult, locationResult, umbrellaResult, borrowResult] = await Promise.all([
-    service.from("profiles").select("*").eq("id", user.id).single(),
-    service.from("locations").select("*").order("sort_order", { ascending: true }),
-    service.from("umbrellas").select("*").order("id", { ascending: true }),
-    service
-      .from("borrow_transactions")
-      .select("*")
-      .eq("borrower_id", user.id)
-      .eq("status", "active")
-      .order("borrowed_at", { ascending: false })
-  ]);
+  const sql = getSql();
+  const [pageData] = await sql<{
+    profile: Profile | null;
+    locations: Location[];
+    umbrellas: Umbrella[];
+    active_borrows: BorrowTransaction[];
+  }[]>`
+    select
+      (select to_jsonb(p) from public.profiles p where p.id = ${user.id}) as profile,
+      coalesce((select jsonb_agg(l order by l.sort_order) from public.locations l), '[]'::jsonb) as locations,
+      coalesce((select jsonb_agg(u order by u.id) from public.umbrellas u), '[]'::jsonb) as umbrellas,
+      coalesce((
+        select jsonb_agg(bt order by bt.borrowed_at desc)
+        from public.borrow_transactions bt
+        where bt.borrower_id = ${user.id}
+          and bt.status = 'active'
+      ), '[]'::jsonb) as active_borrows
+  `;
 
-  const profile = profileResult.data as Profile | null;
+  const profile = pageData.profile;
   if (!profile || !profile.onboarding_completed) redirect("/onboarding");
 
   if (profile.status !== "active") {
@@ -53,9 +57,9 @@ export default async function DashboardPage() {
       subtitle="เลือกหมายเลขร่มเพื่อยืม และกดที่ร่มของตัวเองเพื่อคืนที่จุดเดิม"
     >
       <DashboardClient
-        activeBorrows={(borrowResult.data ?? []) as BorrowTransaction[]}
-        initialUmbrellas={(umbrellaResult.data ?? []) as Umbrella[]}
-        locations={(locationResult.data ?? []) as Location[]}
+        activeBorrows={pageData.active_borrows}
+        initialUmbrellas={pageData.umbrellas}
+        locations={pageData.locations}
         profile={profile}
       />
     </AppShell>

@@ -2,14 +2,30 @@ import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/s
 import { HttpError } from "@/lib/http";
 import type { AppRole, Profile } from "@/lib/types";
 
-export async function getCurrentUser() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-    error
-  } = await supabase.auth.getUser();
+export type AuthIdentity = {
+  id: string;
+  email: string | null;
+};
 
-  if (error || !user) {
+export async function getAuthIdentity(): Promise<AuthIdentity | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.getClaims();
+  const id = data?.claims.sub;
+
+  if (error || !id) {
+    return null;
+  }
+
+  return {
+    id,
+    email: typeof data.claims.email === "string" ? data.claims.email : null
+  };
+}
+
+export async function getCurrentUser() {
+  const user = await getAuthIdentity();
+
+  if (!user) {
     throw new HttpError(401, "กรุณาเข้าสู่ระบบ");
   }
 

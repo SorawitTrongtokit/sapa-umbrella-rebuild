@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -14,10 +14,6 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState(searchParams.get("message") ?? "");
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    router.prefetch("/dashboard");
-  }, [router]);
 
   async function handleEmailLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,7 +41,6 @@ export function LoginForm() {
     }
 
     router.replace("/dashboard");
-    router.refresh();
   }
 
   async function handleGoogleLogin() {

@@ -42,7 +42,6 @@ export function RegisterForm() {
     }
 
     router.replace("/dashboard");
-    router.refresh();
   }
 
   return (

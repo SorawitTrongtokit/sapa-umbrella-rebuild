@@ -1,13 +1,10 @@
 import { redirect } from "next/navigation";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { UpdatePasswordForm } from "@/components/auth/UpdatePasswordForm";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getAuthIdentity } from "@/lib/auth";
 
 export default async function UpdatePasswordPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const user = await getAuthIdentity();
 
   if (!user) redirect("/auth/login?message=กรุณาเปิดลิงก์ตั้งรหัสผ่านใหม่จากอีเมลอีกครั้ง");
 

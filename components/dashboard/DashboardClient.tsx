@@ -52,7 +52,7 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "umbrellas" },
-        (payload) => {
+        (payload: { new: Record<string, unknown> }) => {
           const next = payload.new as Umbrella;
           if (!next?.id) return;
           setUmbrellas((current) =>

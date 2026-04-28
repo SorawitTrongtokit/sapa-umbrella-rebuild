@@ -52,7 +52,6 @@ export function OnboardingForm({ defaultName }: OnboardingFormProps) {
 
     setIsLoading(false);
     router.replace("/dashboard");
-    router.refresh();
   }
 
   return (
