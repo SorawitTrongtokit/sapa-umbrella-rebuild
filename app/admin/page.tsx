@@ -11,15 +11,21 @@ export default async function AdminPage() {
   if (!user) redirect("/auth/login");
 
   const sql = getSql();
+  const [profile] = await sql<Profile[]>`
+    select * from public.profiles where id = ${user.id}
+  `;
+
+  if (!profile?.onboarding_completed) redirect("/onboarding");
+  if (profile.status !== "active") redirect("/dashboard");
+  if (profile.role !== "admin" && profile.role !== "owner") redirect("/dashboard");
+
   const [pageData] = await sql<{
-    profile: Profile | null;
     locations: Location[];
     umbrellas: Umbrella[];
     recent_transactions: BorrowTransaction[];
     users: Profile[];
   }[]>`
     select
-      (select to_jsonb(p) from public.profiles p where p.id = ${user.id}) as profile,
       coalesce((select jsonb_agg(l order by l.sort_order) from public.locations l), '[]'::jsonb) as locations,
       coalesce((select jsonb_agg(u order by u.id) from public.umbrellas u), '[]'::jsonb) as umbrellas,
       coalesce((
@@ -31,12 +37,16 @@ export default async function AdminPage() {
           limit 40
         ) t
       ), '[]'::jsonb) as recent_transactions,
-      coalesce((select jsonb_agg(p order by p.class_level, p.student_number, p.email) from public.profiles p), '[]'::jsonb) as users
+      coalesce((
+        select jsonb_agg(p order by p.class_level, p.student_number, p.email)
+        from (
+          select *
+          from public.profiles
+          order by class_level, student_number, email
+          limit 200
+        ) p
+      ), '[]'::jsonb) as users
   `;
-
-  const profile = pageData.profile;
-  if (!profile?.onboarding_completed) redirect("/onboarding");
-  if (profile.role !== "admin" && profile.role !== "owner") redirect("/dashboard");
 
   return (
     <AppShell

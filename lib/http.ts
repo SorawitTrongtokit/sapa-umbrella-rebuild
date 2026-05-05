@@ -14,13 +14,21 @@ export function jsonOk<T>(data: T, init?: ResponseInit) {
   return NextResponse.json({ ok: true, data }, init);
 }
 
+export function jsonBadRequest(message: string) {
+  return jsonError(new HttpError(400, message));
+}
+
 export function jsonError(error: unknown) {
   if (error instanceof HttpError) {
     return NextResponse.json({ ok: false, error: error.message }, { status: error.status });
   }
 
-  const message = error instanceof Error ? error.message : "เกิดข้อผิดพลาด";
-  return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  if (error instanceof SyntaxError) {
+    return NextResponse.json({ ok: false, error: "ข้อมูล JSON ไม่ถูกต้อง" }, { status: 400 });
+  }
+
+  console.error(error);
+  return NextResponse.json({ ok: false, error: "เกิดข้อผิดพลาด" }, { status: 500 });
 }
 
 export function requestMeta(request: NextRequest) {

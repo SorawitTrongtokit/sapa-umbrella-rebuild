@@ -2,7 +2,7 @@ import { type NextRequest } from "next/server";
 import { z } from "zod";
 import { requireActiveProfile } from "@/lib/auth";
 import { getSql } from "@/lib/db";
-import { HttpError, jsonError, jsonOk, requestMeta } from "@/lib/http";
+import { HttpError, jsonBadRequest, jsonError, jsonOk, requestMeta } from "@/lib/http";
 
 const returnSchema = z.object({
   returnLocationId: z.string().min(1)
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return jsonOk(result);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return jsonError(new Error(error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง"));
+      return jsonBadRequest(error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง");
     }
     return jsonError(error);
   }

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { groupUmbrellas, statusLabel, statusTone } from "../lib/umbrella";
+import { findActiveUmbrella, groupUmbrellas, isBorrowedByUser, statusLabel, statusTone } from "../lib/umbrella";
 import type { Location, Umbrella } from "../lib/types";
 
 function makeUmbrella(id: number, locationId: string, status: Umbrella["status"] = "available"): Umbrella {
@@ -48,4 +48,19 @@ test("defines Thai labels and stable tones for all umbrella states", () => {
     borrowed: "warning",
     disabled: "danger"
   });
+});
+
+test("only treats currently borrowed umbrellas as active for a user", () => {
+  const userId = "user-1";
+  const borrowed = {
+    ...makeUmbrella(1, "dome", "borrowed"),
+    borrowed_by: userId,
+    borrowed_transaction_id: "tx-1"
+  };
+  const returned = makeUmbrella(2, "dome", "available");
+  const staleBorrowIds = new Set([2]);
+
+  assert.equal(isBorrowedByUser(borrowed, userId, staleBorrowIds), true);
+  assert.equal(isBorrowedByUser(returned, userId, staleBorrowIds), false);
+  assert.equal(findActiveUmbrella([returned], userId, staleBorrowIds), null);
 });

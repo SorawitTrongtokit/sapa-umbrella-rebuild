@@ -231,6 +231,7 @@ export function AdminClient({ locations, initialUmbrellas, recentTransactions, u
                             icon={CheckCircle2}
                             label="เปิดใช้งาน"
                             tone="success"
+                            disabled={umbrella.status !== "disabled"}
                             onClick={() => setPendingAction({ umbrella, action: "enable" })}
                           />
                           <IconAction
@@ -301,11 +302,13 @@ function IconAction({
   icon: Icon,
   label,
   tone,
+  disabled = false,
   onClick
 }: {
   icon: LucideIcon;
   label: string;
   tone: "success" | "danger" | "neutral";
+  disabled?: boolean;
   onClick: () => void;
 }) {
   const colors = {
@@ -316,10 +319,11 @@ function IconAction({
 
   return (
     <button
-      className={`focus-ring flex size-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400 transition-colors ${colors[tone]}`}
+      className={`focus-ring flex size-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400 transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${colors[tone]}`}
       type="button"
       aria-label={label}
       title={label}
+      disabled={disabled}
       onClick={onClick}
     >
       <Icon aria-hidden="true" size={18} />

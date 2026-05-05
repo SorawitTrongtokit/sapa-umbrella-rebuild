@@ -11,15 +11,29 @@ export default async function OwnerPage() {
   if (!user) redirect("/auth/login");
 
   const sql = getSql();
+  const [profile] = await sql<Profile[]>`
+    select * from public.profiles where id = ${user.id}
+  `;
+
+  if (!profile?.onboarding_completed) redirect("/onboarding");
+  if (profile.status !== "active") redirect("/dashboard");
+  if (profile.role !== "owner") redirect("/dashboard");
+
   const [pageData] = await sql<{
-    profile: Profile | null;
     users: Profile[];
     feedback: Feedback[];
     audit_logs: AuditLog[];
   }[]>`
     select
-      (select to_jsonb(p) from public.profiles p where p.id = ${user.id}) as profile,
-      coalesce((select jsonb_agg(p order by p.created_at desc) from public.profiles p), '[]'::jsonb) as users,
+      coalesce((
+        select jsonb_agg(p order by p.created_at desc)
+        from (
+          select *
+          from public.profiles
+          order by created_at desc
+          limit 200
+        ) p
+      ), '[]'::jsonb) as users,
       coalesce((
         select jsonb_agg(f order by f.created_at desc)
         from (
@@ -39,10 +53,6 @@ export default async function OwnerPage() {
         ) a
       ), '[]'::jsonb) as audit_logs
   `;
-
-  const profile = pageData.profile;
-  if (!profile?.onboarding_completed) redirect("/onboarding");
-  if (profile.role !== "owner") redirect("/dashboard");
 
   return (
     <AppShell

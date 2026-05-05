@@ -5,6 +5,13 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
     request
   });
+  const hasSupabaseAuthCookie = request.cookies
+    .getAll()
+    .some((cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("auth-token"));
+
+  if (!hasSupabaseAuthCookie) {
+    return response;
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

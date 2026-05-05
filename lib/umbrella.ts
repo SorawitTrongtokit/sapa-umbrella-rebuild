@@ -24,3 +24,11 @@ export function groupUmbrellas(umbrellas: Umbrella[], locations: Location[]) {
     }))
     .filter((group) => locationOrder.has(group.location.id));
 }
+
+export function isBorrowedByUser(umbrella: Umbrella, userId: string, activeBorrowIds = new Set<number>()) {
+  return umbrella.status === "borrowed" && (umbrella.borrowed_by === userId || activeBorrowIds.has(umbrella.id));
+}
+
+export function findActiveUmbrella(umbrellas: Umbrella[], userId: string, activeBorrowIds = new Set<number>()) {
+  return umbrellas.find((umbrella) => isBorrowedByUser(umbrella, userId, activeBorrowIds)) ?? null;
+}

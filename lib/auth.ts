@@ -1,4 +1,5 @@
-import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase-server";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getSql } from "@/lib/db";
 import { HttpError } from "@/lib/http";
 import type { AppRole, Profile } from "@/lib/types";
 
@@ -33,18 +34,18 @@ export async function getCurrentUser() {
 }
 
 export async function getProfile(userId: string): Promise<Profile> {
-  const supabase = createSupabaseServiceClient();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single();
+  const sql = getSql();
+  const [profile] = await sql<Profile[]>`
+    select *
+    from public.profiles
+    where id = ${userId}
+  `;
 
-  if (error || !data) {
+  if (!profile) {
     throw new HttpError(403, "ไม่พบข้อมูลผู้ใช้");
   }
 
-  return data as Profile;
+  return profile;
 }
 
 export async function requireActiveProfile(): Promise<Profile> {

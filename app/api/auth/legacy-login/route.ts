@@ -3,7 +3,7 @@ import { z } from "zod";
 import { writeAuditLog } from "@/lib/audit";
 import { getSupabaseCompatiblePassword } from "@/lib/auth-password";
 import { getSql } from "@/lib/db";
-import { HttpError, jsonError, jsonOk, requestMeta } from "@/lib/http";
+import { HttpError, jsonBadRequest, jsonError, jsonOk, requestMeta } from "@/lib/http";
 import { constantTimeEquals, decryptPassword } from "@/lib/password-vault";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase-server";
 import type { AppRole, AccountStatus } from "@/lib/types";
@@ -24,10 +24,55 @@ type LegacyLoginRow = {
   auth_tag: string;
 };
 
+const MAX_FAILED_ATTEMPTS = 5;
+
+function legacyAttemptKey(email: string, ip: string | null) {
+  return `${ip ?? "unknown"}:${email.toLowerCase()}`;
+}
+
+async function assertLegacyLoginAllowed(sql: ReturnType<typeof getSql>, attemptKey: string) {
+  const [row] = await sql<{ attempts: number }[]>`
+    select count(*)::int as attempts
+    from app_private.auth_attempts
+    where attempt_key = ${attemptKey}
+      and success = false
+      and attempted_at > now() - interval '10 minutes'
+  `;
+
+  if ((row?.attempts ?? 0) >= MAX_FAILED_ATTEMPTS) {
+    throw new HttpError(429, "ลองใหม่ภายหลัง");
+  }
+}
+
+async function recordLegacyLoginAttempt(
+  sql: ReturnType<typeof getSql>,
+  attemptKey: string,
+  email: string,
+  ip: string | null,
+  success: boolean
+) {
+  if (success) {
+    await sql`
+      delete from app_private.auth_attempts
+      where attempt_key = ${attemptKey}
+        and success = false
+    `;
+  }
+
+  await sql`
+    insert into app_private.auth_attempts (attempt_key, email, ip, success)
+    values (${attemptKey}, ${email.toLowerCase()}, ${ip}, ${success})
+  `;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = legacyLoginSchema.parse(await request.json());
+    const meta = requestMeta(request);
+    const attemptKey = legacyAttemptKey(body.email, meta.ip);
     const sql = getSql();
+    await assertLegacyLoginAllowed(sql, attemptKey);
+
     const [row] = await sql<LegacyLoginRow[]>`
       select
         p.id::text,
@@ -44,11 +89,18 @@ export async function POST(request: NextRequest) {
       limit 1
     `;
 
-    if (!row) throw new HttpError(401, "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
-    if (row.status !== "active") throw new HttpError(403, "บัญชีนี้ถูกระงับ กรุณาติดต่อผู้ดูแล");
+    if (!row) {
+      await recordLegacyLoginAttempt(sql, attemptKey, body.email, meta.ip, false);
+      throw new HttpError(401, "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+    }
+    if (row.status !== "active") {
+      await recordLegacyLoginAttempt(sql, attemptKey, body.email, meta.ip, false);
+      throw new HttpError(403, "บัญชีนี้ถูกระงับ กรุณาติดต่อผู้ดูแล");
+    }
 
     const legacyPassword = decryptPassword(row);
     if (!constantTimeEquals(legacyPassword, body.password)) {
+      await recordLegacyLoginAttempt(sql, attemptKey, body.email, meta.ip, false);
       throw new HttpError(401, "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
     }
 
@@ -65,9 +117,12 @@ export async function POST(request: NextRequest) {
       email: row.email,
       password: authPassword.password
     });
-    if (signInError) throw new HttpError(401, "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+    if (signInError) {
+      await recordLegacyLoginAttempt(sql, attemptKey, body.email, meta.ip, false);
+      throw new HttpError(401, "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+    }
 
-    const meta = requestMeta(request);
+    await recordLegacyLoginAttempt(sql, attemptKey, body.email, meta.ip, true);
     await writeAuditLog({
       actorId: row.id,
       targetUserId: row.id,
@@ -82,7 +137,7 @@ export async function POST(request: NextRequest) {
     return jsonOk({ userId: row.id });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return jsonError(new HttpError(400, "ข้อมูลเข้าสู่ระบบไม่ถูกต้อง"));
+      return jsonBadRequest("ข้อมูลเข้าสู่ระบบไม่ถูกต้อง");
     }
     return jsonError(error);
   }

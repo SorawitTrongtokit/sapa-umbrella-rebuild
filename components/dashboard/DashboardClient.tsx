@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertCircle, Check, Coffee, Dumbbell, Home, MapPin, MessageSquare, Save, Umbrella as UmbrellaIcon, Utensils, X, XCircle } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
-import { groupUmbrellas, statusLabel } from "@/lib/umbrella";
+import { findActiveUmbrella, groupUmbrellas, isBorrowedByUser, statusLabel } from "@/lib/umbrella";
 import type { BorrowTransaction, Location, Profile, Umbrella, UmbrellaStatus } from "@/lib/types";
 
 type DashboardClientProps = {
@@ -42,6 +42,9 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
   const [feedback, setFeedback] = useState("");
   const [message, setMessage] = useState("");
   const [busyUmbrella, setBusyUmbrella] = useState<number | null>(null);
+  const [activeBorrowIds, setActiveBorrowIds] = useState<Set<number>>(
+    () => new Set(activeBorrows.map((item) => item.umbrella_id))
+  );
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
 
@@ -72,9 +75,8 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
     () => new Map(locations.map((location) => [location.id, location.name_th])),
     [locations]
   );
-  const activeBorrowIds = useMemo(() => new Set(activeBorrows.map((item) => item.umbrella_id)), [activeBorrows]);
   const activeUmbrella = useMemo(
-    () => umbrellas.find((umbrella) => umbrella.borrowed_by === profile.id) ?? umbrellas.find((umbrella) => activeBorrowIds.has(umbrella.id)),
+    () => findActiveUmbrella(umbrellas, profile.id, activeBorrowIds),
     [activeBorrowIds, profile.id, umbrellas]
   );
   const counts = useMemo(
@@ -89,7 +91,7 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
   async function actOnUmbrella(umbrella: Umbrella) {
     const previousUmbrellas = umbrellas;
     setBusyUmbrella(umbrella.id);
-    const isMine = umbrella.borrowed_by === profile.id || activeBorrowIds.has(umbrella.id);
+    const isMine = isBorrowedByUser(umbrella, profile.id, activeBorrowIds);
     const endpoint = isMine ? "return" : "borrow";
     setSelectedUmbrella(null);
     setMessage(isMine ? "กำลังคืนร่ม..." : "กำลังยืมร่ม...");
@@ -118,6 +120,12 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
         setMessage(payload.error ?? "ทำรายการไม่สำเร็จ");
         return;
       }
+      setActiveBorrowIds((current) => {
+        const next = new Set(current);
+        if (isMine) next.delete(umbrella.id);
+        else next.add(umbrella.id);
+        return next;
+      });
       setMessage(isMine ? "คืนร่มเรียบร้อย" : "ยืมร่มเรียบร้อย");
     } catch {
       setUmbrellas(previousUmbrellas);
@@ -308,8 +316,8 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
 
               <div className="grid grid-cols-2 gap-4">
                 {group.umbrellas.map((umbrella) => {
-                  const isMine = umbrella.borrowed_by === profile.id || activeBorrowIds.has(umbrella.id);
-                  const canAct = umbrella.status === "available" || isMine;
+                  const isMine = isBorrowedByUser(umbrella, profile.id, activeBorrowIds);
+                  const canAct = isMine || (!activeUmbrella && umbrella.status === "available");
                   return (
                     <button
                       className={`focus-ring relative min-h-32 overflow-hidden rounded-[24px] p-5 text-left shadow-lg transition-all hover:-translate-y-1 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-80 disabled:hover:translate-y-0 ${tileStyles[umbrella.status]}`}
@@ -371,7 +379,7 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
                 <StatusBadge status={selectedUmbrella.status} />
               </div>
               <p className="text-sm font-medium leading-6 text-slate-600">
-                {selectedUmbrella.borrowed_by === profile.id || activeBorrowIds.has(selectedUmbrella.id)
+                {isBorrowedByUser(selectedUmbrella, profile.id, activeBorrowIds)
                   ? "กดยืนยันเพื่อคืนร่มที่จุดเดิม"
                   : "กดยืนยันเพื่อยืมร่มคันนี้"}
               </p>
@@ -383,7 +391,7 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
               type="button"
               onClick={() => actOnUmbrella(selectedUmbrella)}
             >
-              {selectedUmbrella.borrowed_by === profile.id || activeBorrowIds.has(selectedUmbrella.id) ? "ยืนยันการคืน" : "ยืนยันการยืม"}
+              {isBorrowedByUser(selectedUmbrella, profile.id, activeBorrowIds) ? "ยืนยันการคืน" : "ยืนยันการยืม"}
             </button>
             <button
               className="focus-ring mt-4 w-full rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-600"

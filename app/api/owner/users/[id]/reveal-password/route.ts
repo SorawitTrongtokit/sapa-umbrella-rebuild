@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
 import { getSql } from "@/lib/db";
-import { HttpError, jsonError, jsonOk, requestMeta } from "@/lib/http";
+import { HttpError, jsonBadRequest, jsonError, jsonOk, requestMeta } from "@/lib/http";
 import { decryptPassword } from "@/lib/password-vault";
 import { auditReasonSchema } from "@/lib/validation";
 import type { PasswordVaultRow } from "@/lib/types";
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return jsonOk({ password, source: row.source, changedAt: row.changed_at });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return jsonError(new Error(error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง"));
+      return jsonBadRequest(error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง");
     }
     return jsonError(error);
   }

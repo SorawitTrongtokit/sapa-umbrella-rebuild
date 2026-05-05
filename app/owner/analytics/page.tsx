@@ -16,6 +16,7 @@ export default async function AnalyticsPage() {
   `;
 
   if (!profile?.onboarding_completed) redirect("/onboarding");
+  if (profile.status !== "active") redirect("/dashboard");
   if (profile.role !== "owner" && profile.role !== "admin") redirect("/dashboard");
 
   const [statsRows, locationStats, dailyStats] = await Promise.all([

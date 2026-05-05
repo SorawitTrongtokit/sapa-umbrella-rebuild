@@ -2,7 +2,7 @@ import { type NextRequest } from "next/server";
 import { z } from "zod";
 import { requireActiveProfile } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
-import { jsonError, jsonOk, requestMeta } from "@/lib/http";
+import { jsonBadRequest, jsonError, jsonOk, requestMeta } from "@/lib/http";
 import { createSupabaseServiceClient } from "@/lib/supabase-server";
 import { feedbackSchema } from "@/lib/validation";
 
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     return jsonOk(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return jsonError(new Error(error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง"));
+      return jsonBadRequest(error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง");
     }
     return jsonError(error);
   }

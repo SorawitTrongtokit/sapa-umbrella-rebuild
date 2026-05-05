@@ -7,6 +7,10 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
+function isUniqueViolation(error: unknown) {
+  return Boolean(error && typeof error === "object" && "code" in error && error.code === "23505");
+}
+
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const profile = await requireActiveProfile();
@@ -23,16 +27,30 @@ export async function POST(request: NextRequest, context: RouteContext) {
         id: number;
         status: string;
         location_id: string;
+        has_active_borrow: boolean;
       }[]>`
-        select id, status, location_id
-        from public.umbrellas
-        where id = ${umbrellaId}
-        for update
+        select
+          u.id,
+          u.status,
+          u.location_id,
+          exists (
+            select 1
+            from public.borrow_transactions bt
+            where bt.borrower_id = ${profile.id}
+              and bt.status = 'active'
+          ) as has_active_borrow
+        from public.umbrellas u
+        where u.id = ${umbrellaId}
+        for update of u
       `;
 
       if (!umbrella) throw new HttpError(404, "ไม่พบร่มนี้");
       if (umbrella.status === "disabled") throw new HttpError(409, "ร่มนี้ปิดใช้งานอยู่");
       if (umbrella.status !== "available") throw new HttpError(409, "ร่มนี้ถูกยืมแล้ว");
+
+      if (umbrella.has_active_borrow) {
+        throw new HttpError(409, "คุณมีร่มที่ยังไม่ได้คืน");
+      }
 
       const [transaction] = await tx<{ id: string }[]>`
         insert into public.borrow_transactions (
@@ -83,6 +101,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     return jsonOk(result);
   } catch (error) {
+    if (isUniqueViolation(error)) {
+      return jsonError(new HttpError(409, "คุณมีร่มที่ยังไม่ได้คืน"));
+    }
     return jsonError(error);
   }
 }

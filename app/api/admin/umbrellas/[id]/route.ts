@@ -2,7 +2,7 @@ import { type NextRequest } from "next/server";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { getSql } from "@/lib/db";
-import { HttpError, jsonError, jsonOk, requestMeta } from "@/lib/http";
+import { HttpError, jsonBadRequest, jsonError, jsonOk, requestMeta } from "@/lib/http";
 
 const adminUmbrellaSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("enable"), reason: z.string().trim().min(3).max(500) }),
@@ -40,6 +40,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       `;
 
       if (!umbrella) throw new HttpError(404, "ไม่พบร่มนี้");
+
+      if (body.action === "enable" && umbrella.status !== "disabled") {
+        throw new HttpError(409, "เปิดใช้งานได้เฉพาะร่มที่ถูกปิดใช้งานอยู่");
+      }
 
       if (umbrella.borrowed_transaction_id && body.action !== "enable") {
         await tx`
@@ -97,7 +101,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return jsonOk(result);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return jsonError(new Error(error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง"));
+      return jsonBadRequest(error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง");
     }
     return jsonError(error);
   }
