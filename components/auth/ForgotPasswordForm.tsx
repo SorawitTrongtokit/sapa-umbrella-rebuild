@@ -31,37 +31,47 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <form className="space-y-5" onSubmit={handleSubmit}>
-        <label className="block text-xs font-black uppercase tracking-widest text-slate-400">
+        <label className="block text-xs font-black uppercase tracking-wider text-slate-400">
           อีเมล
           <input
-            className="focus-ring field-control mt-2 min-h-12 w-full rounded-2xl px-4 py-3 text-base text-slate-950 placeholder:text-slate-400"
+            className="focus-ring field-control mt-2 w-full px-4 py-3 text-slate-900 placeholder:text-slate-400"
             type="email"
             autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
+            placeholder="example@email.com"
             required
           />
         </label>
+
         {message ? (
-          <p className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-900" role="status">
+          <p
+            className={`rounded-2xl border px-4 py-3.5 text-xs font-bold transition-all animate-pop ${
+              message.includes("เราจะส่งลิงก์")
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm"
+                : "border-rose-200 bg-rose-50 text-rose-800 shadow-sm"
+            }`}
+            role="status"
+          >
             {message}
           </p>
         ) : null}
+
         <button
-          className="btn-primary focus-ring flex w-full cursor-pointer items-center justify-center gap-2 px-4 py-4 text-lg disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
+          className="btn-primary focus-ring flex w-full cursor-pointer items-center justify-center gap-2 text-base disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
           disabled={isLoading}
           type="submit"
         >
           <Mail aria-hidden="true" size={18} />
-          {isLoading ? "กำลังส่งลิงก์" : "ส่งลิงก์ตั้งรหัสผ่านใหม่"}
+          {isLoading ? "กำลังส่งลิงก์..." : "ส่งลิงก์ตั้งรหัสผ่านใหม่"}
         </button>
       </form>
 
       <p className="text-center text-sm font-bold text-slate-400">
         จำรหัสผ่านได้แล้ว?{" "}
-        <Link className="font-black text-blue-600 hover:underline" href="/auth/login">
+        <Link className="font-black text-indigo-600 hover:text-indigo-800 transition-colors hover:underline" href="/auth/login">
           เข้าสู่ระบบ
         </Link>
       </p>

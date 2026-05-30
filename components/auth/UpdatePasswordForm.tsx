@@ -39,40 +39,44 @@ export function UpdatePasswordForm() {
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
-      <label className="block text-xs font-black uppercase tracking-widest text-slate-400">
+      <label className="block text-xs font-black uppercase tracking-wider text-slate-400">
         รหัสผ่านใหม่
         <input
-          className="focus-ring field-control mt-2 min-h-12 w-full rounded-2xl px-4 py-3 text-base text-slate-950"
+          className="focus-ring field-control mt-2 w-full px-4 py-3 text-slate-900 placeholder:text-slate-400"
           type="password"
           autoComplete="new-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
+          placeholder="อย่างน้อย 6 ตัวอักษร"
           required
         />
       </label>
-      <label className="block text-xs font-black uppercase tracking-widest text-slate-400">
+      <label className="block text-xs font-black uppercase tracking-wider text-slate-400">
         ยืนยันรหัสผ่านใหม่
         <input
-          className="focus-ring field-control mt-2 min-h-12 w-full rounded-2xl px-4 py-3 text-base text-slate-950"
+          className="focus-ring field-control mt-2 w-full px-4 py-3 text-slate-900 placeholder:text-slate-400"
           type="password"
           autoComplete="new-password"
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
+          placeholder="ยืนยันรหัสผ่านอีกครั้ง"
           required
         />
       </label>
+
       {message ? (
-        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800" role="alert">
+        <p className="rounded-2xl border border-rose-200 bg-rose-50 text-rose-800 px-4 py-3.5 text-xs font-bold transition-all animate-pop" role="alert">
           {message}
         </p>
       ) : null}
+
       <button
-        className="btn-primary focus-ring flex w-full cursor-pointer items-center justify-center gap-2 px-4 py-4 text-lg disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
+        className="btn-primary focus-ring flex w-full cursor-pointer items-center justify-center gap-2 text-base disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
         disabled={isLoading}
         type="submit"
       >
         <KeyRound aria-hidden="true" size={18} />
-        {isLoading ? "กำลังบันทึก" : "ตั้งรหัสผ่านใหม่"}
+        {isLoading ? "กำลังบันทึก..." : "ตั้งรหัสผ่านใหม่"}
       </button>
     </form>
   );

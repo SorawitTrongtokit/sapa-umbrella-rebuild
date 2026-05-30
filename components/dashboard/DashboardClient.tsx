@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, Check, Coffee, Dumbbell, Home, MapPin, MessageSquare, Save, Umbrella as UmbrellaIcon, Utensils, X, XCircle } from "lucide-react";
+import { createPortal } from "react-dom";
+import { AlertCircle, Check, ChevronDown, ChevronUp, Coffee, Dumbbell, Home, MapPin, MessageSquare, Save, Umbrella as UmbrellaIcon, Utensils, X, XCircle } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { findActiveUmbrella, groupUmbrellas, isBorrowedByUser, statusLabel } from "@/lib/umbrella";
 import type { BorrowTransaction, Location, Profile, Umbrella, UmbrellaStatus } from "@/lib/types";
@@ -14,21 +15,15 @@ type DashboardClientProps = {
 };
 
 const badgeStyles: Record<UmbrellaStatus, string> = {
-  available: "border-emerald-200 bg-emerald-100 text-emerald-700",
-  borrowed: "border-blue-200 bg-blue-100 text-blue-700",
-  disabled: "border-slate-200 bg-slate-100 text-slate-500"
+  available: "border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-500/5",
+  borrowed: "border-rose-200 bg-rose-50 text-rose-700 shadow-sm shadow-rose-500/5",
+  disabled: "border-slate-200 bg-slate-50 text-slate-500"
 };
 
-const tileStyles: Record<UmbrellaStatus, string> = {
-  available: "bg-emerald-500 text-white shadow-emerald-200 hover:bg-emerald-600",
-  borrowed: "bg-rose-500 text-white shadow-rose-200 hover:bg-rose-600",
-  disabled: "bg-slate-300 text-white shadow-none"
-};
-
-const locationConfigs: Record<string, { icon: typeof Home; gradient: string }> = {
-  dome: { icon: Home, gradient: "premium-gradient-2" },
-  sports_center: { icon: Dumbbell, gradient: "premium-gradient-1" },
-  cafeteria: { icon: Utensils, gradient: "premium-gradient-3" }
+const locationConfigs: Record<string, { icon: typeof Home; gradient: string; tint: string }> = {
+  dome: { icon: Home, gradient: "premium-gradient-2", tint: "shadow-rose-100 bg-rose-50/50" },
+  sports_center: { icon: Dumbbell, gradient: "premium-gradient-1", tint: "shadow-indigo-100 bg-indigo-50/50" },
+  cafeteria: { icon: Utensils, gradient: "premium-gradient-3", tint: "shadow-emerald-100 bg-emerald-50/50" }
 };
 
 export function DashboardClient({ profile, locations, initialUmbrellas, activeBorrows }: DashboardClientProps) {
@@ -47,6 +42,23 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
   );
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
+  const [isProfileExpanded, setIsProfileExpanded] = useState(false);
+  const [isFeedbackExpanded, setIsFeedbackExpanded] = useState(false);
+
+  useEffect(() => {
+    function handleHashChange() {
+      if (window.location.hash === "#profile") {
+        setIsProfileExpanded(true);
+      } else if (window.location.hash === "#feedback") {
+        setIsFeedbackExpanded(true);
+      }
+    }
+    handleHashChange();
+    window.addEventListener("hashchange", handleHashChange);
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+    };
+  }, []);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -165,28 +177,32 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
   }
 
   return (
-    <div className="animate-page grid grid-cols-12 gap-6">
-      <aside className="col-span-full space-y-6 lg:col-span-3">
-        <section className="glass-card rounded-[32px] p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-500">
-            <span className="status-pulse size-2 rounded-full bg-blue-500" />
-            สถานะปัจจุบันของคุณ
+    <div className="animate-page grid grid-cols-12 gap-5 lg:gap-6">
+      
+      {/* Sidebar Section */}
+      <aside className="col-span-full space-y-5 lg:col-span-3">
+        
+        {/* User Status holographic glass card */}
+        <section className="glass-card rounded-[28px] p-5">
+          <h2 className="mb-3.5 flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-400">
+            <span className="status-pulse size-2 rounded-full bg-indigo-500" />
+            สถานะของคุณ
           </h2>
-          <div className="soft-shine relative overflow-hidden rounded-2xl bg-blue-600 p-6 text-white shadow-xl shadow-blue-200">
+          <div className="soft-shine relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-700 p-5 text-white shadow-md shadow-indigo-200/50">
             <div className="relative z-10">
-              <p className="mb-1 text-xs font-medium opacity-80">
+              <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider opacity-85">
                 {activeUmbrella ? "กำลังยืมร่มหมายเลข" : "ยังไม่มีร่มที่กำลังยืม"}
               </p>
-              <p className="mb-3 text-4xl font-black">{activeUmbrella ? String(activeUmbrella.id).padStart(2, "0") : "--"}</p>
-              <div className="flex w-fit items-center gap-2 rounded-full bg-sky-400/30 px-2 py-1 text-[10px] font-bold">
-                <AlertCircle size={12} />
-                {activeUmbrella ? `จุดที่ต้องคืน: ${locationNameById.get(activeUmbrella.location_id) ?? "-"}` : "เลือกช่องสีเขียวเพื่อเริ่มยืม"}
+              <p className="mb-2 text-3xl font-black">{activeUmbrella ? String(activeUmbrella.id).padStart(2, "0") : "--"}</p>
+              <div className="flex w-fit items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wide">
+                <AlertCircle size={11} />
+                {activeUmbrella ? `คืนที่: ${locationNameById.get(activeUmbrella.location_id) ?? "-"}` : "แตะร่มสีเขียวเพื่อยืม"}
               </div>
             </div>
-            <UmbrellaIcon className="absolute -bottom-4 -right-4 size-24 -rotate-12 text-white/10" />
+            <UmbrellaIcon className="absolute -bottom-3 -right-3 size-20 -rotate-12 text-white/10" />
           </div>
           <button
-            className="btn-secondary focus-ring mt-4 w-full px-4 py-3 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-secondary focus-ring mt-3 w-full px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!activeUmbrella || busyUmbrella === activeUmbrella.id}
             type="button"
             onClick={() => activeUmbrella && setSelectedUmbrella(activeUmbrella)}
@@ -195,143 +211,172 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
           </button>
         </section>
 
-        <section className="glass-card rounded-[32px] p-6">
-          <h2 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-500">สรุปการใช้งาน</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-500">ร่มที่พร้อมใช้งาน</span>
-              <span className="text-lg font-black tracking-normal text-emerald-500">
+        {/* Utilization summaries */}
+        <section className="glass-card rounded-[28px] p-5">
+          <h2 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">สรุปภาพรวมร่ม</h2>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs font-bold">
+              <span className="text-slate-500">พร้อมใช้งาน</span>
+              <span className="text-sm font-black text-emerald-600">
                 {counts.available}/{umbrellas.length}
               </span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-slate-100">
               <div
                 className="h-full rounded-full bg-emerald-400 transition-all duration-700"
-                style={{ "--progress-width": `${umbrellas.length ? (counts.available / umbrellas.length) * 100 : 0}%` } as React.CSSProperties}
+                style={{ width: `${umbrellas.length ? (counts.available / umbrellas.length) * 100 : 0}%` }}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <SummaryBox label="ว่าง" value={counts.available} tone="success" />
               <SummaryBox label="ถูกยืม" value={counts.borrowed} tone="danger" />
             </div>
-            <SummaryBox label="ปิดใช้งาน / ชำรุด" value={counts.disabled} tone="neutral" />
+            <SummaryBox label="ชำรุด / ปิดใช้งาน" value={counts.disabled} tone="neutral" />
           </div>
         </section>
 
-        <section className="glass-card rounded-[32px] p-6">
-          <h2 className="text-base font-black text-blue-950">ข้อมูลส่วนตัว</h2>
-          <form className="mt-4 space-y-3" onSubmit={saveProfile}>
-            <input
-              className="focus-ring field-control min-h-11 w-full rounded-2xl px-4 py-2.5 text-sm"
-              aria-label="ชื่อที่แสดง"
-              value={profileDraft.displayName}
-              onChange={(event) => setProfileDraft((draft) => ({ ...draft, displayName: event.target.value }))}
-              placeholder="ชื่อที่แสดง"
-            />
-            <div className="grid grid-cols-2 gap-3">
+        {/* Profile Card */}
+        <section id="profile" className="glass-card rounded-[28px] p-5">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between text-left focus:outline-none"
+            onClick={() => setIsProfileExpanded(!isProfileExpanded)}
+          >
+            <h2 className="text-sm font-black uppercase tracking-wider text-slate-700">ข้อมูลส่วนตัว</h2>
+            {isProfileExpanded ? (
+              <ChevronUp className="text-slate-400" size={16} />
+            ) : (
+              <ChevronDown className="text-slate-400" size={16} />
+            )}
+          </button>
+          {isProfileExpanded && (
+            <form className="mt-3.5 space-y-3 animate-pop" onSubmit={saveProfile}>
               <input
-                className="focus-ring field-control min-h-11 w-full rounded-2xl px-4 py-2.5 text-sm"
-                aria-label="ชั้น"
-                value={profileDraft.classLevel}
-                onChange={(event) => setProfileDraft((draft) => ({ ...draft, classLevel: event.target.value }))}
-                placeholder="ชั้น"
+                className="focus-ring field-control w-full px-3.5 py-2 text-sm"
+                aria-label="ชื่อที่แสดง"
+                value={profileDraft.displayName}
+                onChange={(event) => setProfileDraft((draft) => ({ ...draft, displayName: event.target.value }))}
+                placeholder="ชื่อที่แสดง"
+                required
               />
-              <input
-                className="focus-ring field-control min-h-11 w-full rounded-2xl px-4 py-2.5 text-sm"
-                aria-label="เลขที่"
-                inputMode="numeric"
-                value={profileDraft.studentNumber}
-                onChange={(event) => setProfileDraft((draft) => ({ ...draft, studentNumber: event.target.value }))}
-                placeholder="เลขที่"
-              />
-            </div>
-            <button
-              className="btn-primary focus-ring flex w-full cursor-pointer items-center justify-center gap-2 px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
-              disabled={isSavingProfile}
-              type="submit"
-            >
-              <Save aria-hidden="true" size={16} />
-              {isSavingProfile ? "กำลังบันทึก" : "บันทึกข้อมูล"}
-            </button>
-          </form>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  className="focus-ring field-control w-full px-3.5 py-2 text-sm"
+                  aria-label="ชั้น"
+                  value={profileDraft.classLevel}
+                  onChange={(event) => setProfileDraft((draft) => ({ ...draft, classLevel: event.target.value }))}
+                  placeholder="ชั้น"
+                  required
+                />
+                <input
+                  className="focus-ring field-control w-full px-3.5 py-2 text-sm"
+                  aria-label="เลขที่"
+                  inputMode="numeric"
+                  value={profileDraft.studentNumber}
+                  onChange={(event) => setProfileDraft((draft) => ({ ...draft, studentNumber: event.target.value }))}
+                  placeholder="เลขที่"
+                  required
+                />
+              </div>
+              <button
+                className="btn-primary focus-ring flex w-full cursor-pointer items-center justify-center gap-1.5 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
+                disabled={isSavingProfile}
+                type="submit"
+              >
+                <Save aria-hidden="true" size={15} />
+                {isSavingProfile ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
+              </button>
+            </form>
+          )}
         </section>
 
-        <section className="glass-card rounded-[32px] p-6">
-          <h2 className="text-base font-black text-blue-950">ส่งคำติชม</h2>
-          <form className="mt-4 space-y-3" onSubmit={sendFeedback}>
-            <textarea
-              className="focus-ring field-control min-h-28 w-full resize-y rounded-2xl px-4 py-3 text-sm"
-              value={feedback}
-              onChange={(event) => setFeedback(event.target.value)}
-              placeholder="แจ้งปัญหา หรือเสนอแนะการใช้งาน"
-              required
-            />
-            <button
-              className="focus-ring flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-sky-100 bg-sky-50 px-4 py-2.5 text-sm font-black text-sky-800 transition-colors hover:bg-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
-              disabled={isSendingFeedback}
-              type="submit"
-            >
-              <MessageSquare aria-hidden="true" size={16} />
-              {isSendingFeedback ? "กำลังส่ง" : "ส่งคำติชม"}
-            </button>
-          </form>
+        {/* Feedback Card */}
+        <section id="feedback" className="glass-card rounded-[28px] p-5">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between text-left focus:outline-none"
+            onClick={() => setIsFeedbackExpanded(!isFeedbackExpanded)}
+          >
+            <h2 className="text-sm font-black uppercase tracking-wider text-slate-700">ส่งคำติชม</h2>
+            {isFeedbackExpanded ? (
+              <ChevronUp className="text-slate-400" size={16} />
+            ) : (
+              <ChevronDown className="text-slate-400" size={16} />
+            )}
+          </button>
+          {isFeedbackExpanded && (
+            <form className="mt-3.5 space-y-3 animate-pop" onSubmit={sendFeedback}>
+              <textarea
+                className="focus-ring field-control min-h-24 w-full resize-y px-3.5 py-2.5 text-sm"
+                value={feedback}
+                onChange={(event) => setFeedback(event.target.value)}
+                placeholder="พิมพ์ข้อเสนอแนะหรือปัญหาที่พบที่นี่..."
+                required
+              />
+              <button
+                className="btn-secondary focus-ring flex w-full cursor-pointer items-center justify-center gap-1.5 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isSendingFeedback}
+                type="submit"
+              >
+                <MessageSquare aria-hidden="true" size={15} />
+                {isSendingFeedback ? "กำลังส่ง..." : "ส่งคำติชม"}
+              </button>
+            </form>
+          )}
         </section>
       </aside>
 
-      <section className="col-span-full space-y-6 lg:col-span-9">
+      {/* Main Services / Locations View */}
+      <section className="col-span-full space-y-5 lg:col-span-9">
         {message ? (
-          <p className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-900" role="status">
+          <p className="rounded-2xl border border-indigo-200/50 bg-indigo-50/50 px-4 py-3 text-xs sm:text-sm font-bold text-indigo-900 animate-pop" role="status">
             {message}
           </p>
         ) : null}
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           {groups.map((group, index) => (
             <section
-              className="glass-card animate-rise rounded-[32px] p-5 shadow-xl shadow-blue-900/5"
+              className="glass-card animate-rise rounded-[28px] p-4.5 shadow-sm"
               key={group.location.id}
-              style={{ "--rise-delay": `${index * 45}ms` } as React.CSSProperties}
+              style={{ animationDelay: `${index * 45}ms` } as React.CSSProperties}
             >
-              <header className="mb-6 flex items-center justify-between gap-3">
+              <header className="mb-5 flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <span
-                    className={`flex size-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ${
+                    className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-white shadow-sm ${
                       locationConfigs[group.location.id]?.gradient ?? "bg-blue-400 shadow-blue-100"
                     }`}
                   >
                     {(() => {
                       const Icon = locationConfigs[group.location.id]?.icon ?? MapPin;
-                      return <Icon size={20} strokeWidth={2.5} />;
+                      return <Icon size={18} strokeWidth={2.5} />;
                     })()}
                   </span>
                   <div>
-                    <h2 className="truncate text-xl font-black tracking-normal text-blue-950">{group.location.name_th}</h2>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">พื้นที่จุดบริการ</p>
+                    <h2 className="truncate text-base font-black tracking-normal text-slate-800">{group.location.name_th}</h2>
+                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">จุดบริการ</p>
                   </div>
                 </div>
-                <span className="shrink-0 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-black uppercase tracking-normal text-slate-400">
+                <span className="shrink-0 rounded-lg border border-slate-200/80 bg-white/70 px-2 py-1 text-[9px] font-black text-slate-400">
                   {group.umbrellas.length} คัน
                 </span>
               </header>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Umbrella Grid Cards - 2 cols on mobile for large tapping area */}
+              <div className="grid grid-cols-2 gap-3 sm:gap-3.5">
                 {group.umbrellas.map((umbrella) => {
                   const isMine = isBorrowedByUser(umbrella, profile.id, activeBorrowIds);
                   const canAct = isMine || (!activeUmbrella && umbrella.status === "available");
                   return (
-                    <button
-                      className={`focus-ring relative min-h-32 overflow-hidden rounded-[24px] p-5 text-left shadow-lg transition-all hover:-translate-y-1 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-80 disabled:hover:translate-y-0 ${tileStyles[umbrella.status]}`}
-                      disabled={!canAct || busyUmbrella === umbrella.id}
+                    <UmbrellaTile
                       key={umbrella.id}
-                      type="button"
+                      umbrella={umbrella}
+                      isMine={isMine}
+                      canAct={canAct}
+                      busy={busyUmbrella === umbrella.id}
                       onClick={() => setSelectedUmbrella(umbrella)}
-                    >
-                      <span className="relative z-10 block text-2xl font-black">{String(umbrella.id).padStart(2, "0")}</span>
-                      <span className="relative z-10 mt-1 block text-[10px] font-black uppercase tracking-wider opacity-90">
-                        {busyUmbrella === umbrella.id ? "กำลังทำรายการ" : isMine ? "ร่มของคุณ" : statusLabel[umbrella.status]}
-                      </span>
-                      <span className="absolute -bottom-2 -right-2 size-12 rounded-full bg-white/10" />
-                    </button>
+                    />
                   );
                 })}
               </div>
@@ -340,76 +385,210 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
         </div>
       </section>
 
-      {selectedUmbrella ? (
-        <div className="animate-page fixed inset-0 z-[100] flex items-center justify-center p-6">
-          <button
-            className="absolute inset-0 bg-blue-950/40 backdrop-blur-md"
-            type="button"
-            aria-label="ปิดหน้าต่าง"
-            onClick={() => setSelectedUmbrella(null)}
-          />
-          <section className="animate-pop relative w-full max-w-sm rounded-[40px] border-4 border-white bg-white p-8 shadow-2xl sm:p-10">
-            <button
-              className="focus-ring absolute right-5 top-5 flex size-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 hover:bg-slate-200"
-              type="button"
-              aria-label="ปิด"
-              onClick={() => setSelectedUmbrella(null)}
-            >
-              <X size={18} />
-            </button>
-            <div className="space-y-4 text-center">
-              <div
-                className={`mx-auto flex size-24 items-center justify-center rounded-[32px] text-white shadow-2xl ${
-                  selectedUmbrella.status === "available" ? "bg-emerald-500 shadow-emerald-200" : "bg-rose-500 shadow-rose-200"
-                }`}
-              >
-                <UmbrellaIcon size={48} />
-              </div>
-              <div>
-                <h3 className="text-4xl font-black text-slate-800">ร่ม #{selectedUmbrella.id}</h3>
-                <p className="mt-1 text-xs font-bold uppercase tracking-widest text-blue-500">
-                  {locationNameById.get(selectedUmbrella.location_id) ?? selectedUmbrella.location_id}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-8 space-y-4 rounded-3xl border-2 border-slate-100 bg-slate-50 p-6">
-              <div className="flex items-center justify-between text-sm font-bold">
-                <span className="text-slate-400">สถานะ</span>
-                <StatusBadge status={selectedUmbrella.status} />
-              </div>
-              <p className="text-sm font-medium leading-6 text-slate-600">
-                {isBorrowedByUser(selectedUmbrella, profile.id, activeBorrowIds)
-                  ? "กดยืนยันเพื่อคืนร่มที่จุดเดิม"
-                  : "กดยืนยันเพื่อยืมร่มคันนี้"}
-              </p>
-            </div>
-
-            <button
-              className="btn-primary focus-ring mt-8 w-full px-4 py-5 text-xl disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
-              disabled={busyUmbrella === selectedUmbrella.id}
-              type="button"
-              onClick={() => actOnUmbrella(selectedUmbrella)}
-            >
-              {isBorrowedByUser(selectedUmbrella, profile.id, activeBorrowIds) ? "ยืนยันการคืน" : "ยืนยันการยืม"}
-            </button>
-            <button
-              className="focus-ring mt-4 w-full rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-600"
-              type="button"
-              onClick={() => setSelectedUmbrella(null)}
-            >
-              ยกเลิกรายการ
-            </button>
-          </section>
-        </div>
-      ) : null}
+      {/* Confirmation Bottom Sheet Drawer / Modal popup */}
+      <UmbrellaModal
+        selectedUmbrella={selectedUmbrella}
+        setSelectedUmbrella={setSelectedUmbrella}
+        profileId={profile.id}
+        activeBorrowIds={activeBorrowIds}
+        locationNameById={locationNameById}
+        busyUmbrella={busyUmbrella}
+        actOnUmbrella={actOnUmbrella}
+      />
     </div>
+  );
+}
+
+// 3D Tilt button component for umbrellas
+function UmbrellaTile({
+  umbrella,
+  isMine,
+  canAct,
+  busy,
+  onClick
+}: {
+  umbrella: Umbrella;
+  isMine: boolean;
+  canAct: boolean;
+  busy: boolean;
+  onClick: () => void;
+}) {
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+
+  function handleMouseMove(e: React.MouseEvent<HTMLButtonElement>) {
+    // 3D Tilt calculations on hover
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const xc = rect.width / 2;
+    const yc = rect.height / 2;
+    const rotateX = -(y - yc) / 5; // max 6 degrees rotation
+    const rotateY = (x - xc) / 5;
+    setTilt({ x: rotateX, y: rotateY });
+  }
+
+  function handleMouseLeave() {
+    setTilt({ x: 0, y: 0 });
+  }
+
+  let cardStyle = "";
+  let dotColor = "";
+
+  if (umbrella.status === "available") {
+    cardStyle = "border-emerald-200/50 bg-emerald-500/5 text-emerald-950 hover:bg-emerald-500/10 hover:border-emerald-300 glow-success";
+    dotColor = "bg-emerald-500 shadow-[0_0_8px_#10b981]";
+  } else if (umbrella.status === "borrowed") {
+    if (isMine) {
+      cardStyle = "premium-gradient-self text-white border border-indigo-400/20 glow-self";
+      dotColor = "bg-white shadow-[0_0_8px_#ffffff]";
+    } else {
+      cardStyle = "border-rose-200/40 bg-rose-500/5 text-rose-900/60 shadow-none";
+      dotColor = "bg-rose-400";
+    }
+  } else {
+    cardStyle = "border-slate-200/40 bg-slate-100/50 text-slate-400 shadow-none";
+    dotColor = "bg-slate-300";
+  }
+
+  const isResetting = tilt.x === 0 && tilt.y === 0;
+
+  return (
+    <button
+      className={`focus-ring relative flex min-h-24 flex-col justify-between overflow-hidden rounded-2xl p-4 text-left transition-all duration-75 mobile-active-feedback disabled:cursor-not-allowed disabled:opacity-50 ${cardStyle}`}
+      style={{
+        transform: `perspective(400px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+        transition: isResetting ? "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), background-color 200ms ease, border-color 200ms ease" : "background-color 200ms ease, border-color 200ms ease"
+      }}
+      disabled={!canAct || busy}
+      type="button"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      onClick={onClick}
+    >
+      {/* Glowing Status Dot */}
+      <span className="absolute top-3.5 right-3.5 flex size-2">
+        {umbrella.status !== "disabled" && (
+          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${dotColor}`} />
+        )}
+        <span className={`relative inline-flex rounded-full size-2 ${dotColor}`} />
+      </span>
+
+      <span className="block text-xl font-extrabold">{String(umbrella.id).padStart(2, "0")}</span>
+      
+      <span className="block text-[8px] font-black uppercase tracking-wider opacity-85">
+        {busy ? "กำลังทำรายการ" : isMine ? "ร่มของคุณ" : statusLabel[umbrella.status]}
+      </span>
+      <span className="absolute -bottom-1 -right-1 size-8 rounded-full bg-white/5" />
+    </button>
+  );
+}
+
+// Confirmation slide-up modal / bottom drawer component
+function UmbrellaModal({
+  selectedUmbrella,
+  setSelectedUmbrella,
+  profileId,
+  activeBorrowIds,
+  locationNameById,
+  busyUmbrella,
+  actOnUmbrella
+}: {
+  selectedUmbrella: Umbrella | null;
+  setSelectedUmbrella: (u: Umbrella | null) => void;
+  profileId: string;
+  activeBorrowIds: Set<number>;
+  locationNameById: Map<string, string>;
+  busyUmbrella: number | null;
+  actOnUmbrella: (u: Umbrella) => void;
+}) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line
+    setMounted(true);
+  }, []);
+
+  if (!selectedUmbrella || !mounted) return null;
+
+  const isMine = isBorrowedByUser(selectedUmbrella, profileId, activeBorrowIds);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/20 backdrop-blur-md p-0 sm:p-4 transition-all duration-300">
+      <button
+        className="absolute inset-0 bg-transparent cursor-default"
+        type="button"
+        aria-label="ปิดหน้าต่าง"
+        onClick={() => setSelectedUmbrella(null)}
+      />
+      
+      {/* Bottom Sheet Drawer */}
+      <section className="mobile-bottom-sheet relative w-full sm:max-w-md rounded-t-[32px] sm:rounded-3xl border-t sm:border border-white bg-white/95 backdrop-blur-xl p-6 shadow-2xl pb-10 sm:pb-6">
+        
+        {/* Mobile Header indicator bar */}
+        <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-200 sm:hidden" />
+
+        <button
+          className="focus-ring absolute right-5 top-5 hidden sm:flex size-8 items-center justify-center rounded-xl bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600"
+          type="button"
+          aria-label="ปิด"
+          onClick={() => setSelectedUmbrella(null)}
+        >
+          <X size={15} />
+        </button>
+
+        <div className="space-y-3.5 text-center">
+          <div
+            className={`mx-auto flex size-16 items-center justify-center rounded-2xl text-white shadow-md ${
+              selectedUmbrella.status === "available" ? "bg-emerald-500 shadow-emerald-200" : "premium-gradient-self shadow-indigo-200"
+            }`}
+          >
+            <UmbrellaIcon size={32} />
+          </div>
+          <div>
+            <h3 className="text-2xl font-black text-slate-800">ร่ม #{selectedUmbrella.id}</h3>
+            <p className="mt-0.5 text-[9px] font-black uppercase tracking-widest text-indigo-600">
+              {locationNameById.get(selectedUmbrella.location_id) ?? selectedUmbrella.location_id}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 space-y-3 rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className="text-slate-400">สถานะร่ม</span>
+            <StatusBadge status={selectedUmbrella.status} />
+          </div>
+          <p className="text-xs font-medium leading-relaxed text-slate-600">
+            {isMine
+              ? "กดยืนยันเพื่อคืนร่มที่จุดบริการเดิมให้ถูกต้อง"
+              : "กดยืนยันเพื่อบันทึกรายการยืมร่มคันนี้"}
+          </p>
+        </div>
+
+        <button
+          className="btn-primary focus-ring mt-5 w-full py-3.5 text-base font-bold disabled:cursor-not-allowed disabled:bg-slate-400"
+          disabled={busyUmbrella === selectedUmbrella.id}
+          type="button"
+          onClick={() => actOnUmbrella(selectedUmbrella)}
+        >
+          {isMine ? "ยืนยันการคืนร่ม" : "ยืนยันการยืมร่ม"}
+        </button>
+        
+        <button
+          className="focus-ring mt-2 w-full py-2.5 text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600"
+          type="button"
+          onClick={() => setSelectedUmbrella(null)}
+        >
+          ยกเลิกรายการ
+        </button>
+      </section>
+    </div>,
+    document.body
   );
 }
 
 function StatusBadge({ status }: { status: UmbrellaStatus }) {
   return (
-    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${badgeStyles[status]}`}>
+    <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${badgeStyles[status]}`}>
       {statusLabel[status]}
     </span>
   );
@@ -418,18 +597,18 @@ function StatusBadge({ status }: { status: UmbrellaStatus }) {
 function SummaryBox({ label, value, tone }: { label: string; value: number; tone: "success" | "danger" | "neutral" }) {
   const Icon = tone === "success" ? Check : XCircle;
   const colors = {
-    success: "border-emerald-100 bg-emerald-50 text-emerald-700",
-    danger: "border-rose-100 bg-rose-50 text-rose-700",
-    neutral: "border-slate-100 bg-slate-50 text-slate-500"
+    success: "border-emerald-200/50 bg-emerald-500/5 text-emerald-800",
+    danger: "border-rose-200/40 bg-rose-500/5 text-rose-800",
+    neutral: "border-slate-200/55 bg-slate-100/50 text-slate-500"
   };
 
   return (
-    <div className={`rounded-2xl border p-4 ${colors[tone]}`}>
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] font-black uppercase tracking-wider">{label}</p>
-        <Icon aria-hidden="true" size={16} />
+    <div className={`rounded-xl border p-3 ${colors[tone]}`}>
+      <div className="flex items-center justify-between gap-1.5">
+        <p className="text-[9px] font-black uppercase tracking-wider">{label}</p>
+        <Icon aria-hidden="true" size={13} />
       </div>
-      <p className="mt-1 text-2xl font-black tracking-normal">{value}</p>
+      <p className="mt-0.5 text-xl font-black">{value}</p>
     </div>
   );
 }

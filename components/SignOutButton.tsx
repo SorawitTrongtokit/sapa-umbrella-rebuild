@@ -15,12 +15,12 @@ export function SignOutButton() {
 
   return (
     <button
-      className="focus-ring flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-rose-100 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm transition-colors hover:bg-rose-50 hover:text-rose-700"
+      className="focus-ring flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-rose-200/50 bg-white/40 px-3.5 py-2 text-xs sm:text-sm font-bold text-rose-600 shadow-sm backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-rose-500/10 hover:text-rose-700 hover:shadow-md hover:shadow-rose-100 active:translate-y-0 active:scale-95"
       type="button"
       onClick={signOut}
     >
-      <LogOut aria-hidden="true" size={16} />
-      ออกจากระบบ
+      <LogOut aria-hidden="true" size={15} />
+      <span className="hidden xs:inline">ออกจากระบบ</span>
     </button>
   );
 }

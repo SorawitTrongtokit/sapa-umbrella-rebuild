@@ -5,7 +5,13 @@ import { getAuthIdentity } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import type { AuditLog, Feedback, Profile } from "@/lib/types";
 
-export default async function OwnerPage() {
+type SearchParams = Promise<{ q?: string }>;
+
+export default async function OwnerPage(props: {
+  searchParams: SearchParams;
+}) {
+  const searchParams = await props.searchParams;
+  const q = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   const user = await getAuthIdentity();
 
   if (!user) redirect("/auth/login");
@@ -30,6 +36,10 @@ export default async function OwnerPage() {
         from (
           select *
           from public.profiles
+          where ${q} = ''
+             or lower(email::text) like ${'%' + q.toLowerCase() + '%'}
+             or lower(display_name) like ${'%' + q.toLowerCase() + '%'}
+             or class_level like ${'%' + q + '%'}
           order by created_at desc
           limit 200
         ) p

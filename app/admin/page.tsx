@@ -42,8 +42,19 @@ export default async function AdminPage() {
         from (
           select *
           from public.profiles
-          order by class_level, student_number, email
-          limit 200
+          where id in (
+            select borrowed_by
+            from public.umbrellas
+            where borrowed_by is not null
+            union
+            select borrower_id
+            from (
+              select borrower_id
+              from public.borrow_transactions
+              order by borrowed_at desc
+              limit 40
+            ) t
+          )
         ) p
       ), '[]'::jsonb) as users
   `;
