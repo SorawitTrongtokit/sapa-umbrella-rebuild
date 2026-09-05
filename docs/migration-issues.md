@@ -100,6 +100,17 @@ Next.js พยายาม prerender หน้าที่เรียก `getAu
 - **แก้:** เพิ่ม `export const dynamic = "force-dynamic";` ให้ครบทั้ง 9 หน้าที่อ่าน session
 - หลังแก้ build สะอาด ไม่มี warning
 
+### 17. Google login พังเพราะลบ middleware ที่ใช้แลก OAuth session ✅ แก้แล้ว (post-migration)
+หลัง deploy production ผู้ใช้แจ้ง Google login ขึ้น "เข้าสู่ระบบไม่สำเร็จ" — วิเคราะห์ source ของ
+`@neondatabase/auth` พบว่า flow OAuth มีขั้นแลก token: Better Auth redirect กลับแอปด้วย
+`/auth/callback?neon_auth_session_verifier=<token>` แล้ว **middleware ต้องแลกเป็น session cookie
+บนโดเมนแอป** (ดู `exchangeOAuthToken` ใน SDK) — proxy.ts ตัวเดิมถูกลบตอนแปลงจาก Supabase
+ทำให้ขั้นนี้ไม่มีใครทำ session ไม่เกิด
+- **แก้:** commit `78e24b3` สร้าง `proxy.ts` ใหม่ (matcher เฉพาะ `/auth/callback` ซึ่งอยู่ใน
+  skip list ของ middleware อยู่แล้ว จึงไม่มี route protection เพิ่ม)
+- **บทเรียน:** เวลาลบ middleware ต้องเช็คว่า SDK พึ่งพามันใน flow ไหนบ้าง (ทดสอบ Google login
+  ตั้งแต่ Phase 2 จะจับได้ก่อนขึ้น production)
+
 ## ผลการ migration จริง (2026-09-05)
 
 - `--write` สำเร็จ: locations 3, auth users 104, profiles 104, umbrellas 21,
