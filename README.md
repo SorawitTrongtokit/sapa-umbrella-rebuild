@@ -146,6 +146,7 @@ Copy-Item .env.example .env.local
 ```text
 supabase/migrations/202604260001_initial_schema.sql
 supabase/migrations/20260428122607_performance_indexes.sql
+supabase/migrations/202605050001_audit_fixes.sql
 ```
 
 4. ตั้งค่า Google OAuth ใน Supabase Auth

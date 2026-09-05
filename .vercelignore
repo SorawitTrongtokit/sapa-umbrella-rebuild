@@ -11,8 +11,9 @@ tsconfig.tsbuildinfo
 # local tool/deploy state
 .vercel/
 .firebase/
-.agents/
+.agent/
 .codex/
+.codegraph/
 tmp/
 
 # data, migrations, and local utility scripts not needed at runtime

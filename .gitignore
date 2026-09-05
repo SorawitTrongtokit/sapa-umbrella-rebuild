@@ -16,8 +16,9 @@ tsconfig.tsbuildinfo
 .vercel/
 .firebase/
 supabase/.temp/
-.agents/
+.agent/
 .codex/
+.codegraph/
 tmp/
 
 # exported or private data
@@ -35,3 +36,4 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 firebase-debug.log*
+.neon
