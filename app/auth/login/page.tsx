@@ -4,6 +4,8 @@ import { AuthCard } from "@/components/auth/AuthCard";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { getAuthIdentity } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage() {
   const user = await getAuthIdentity();
 

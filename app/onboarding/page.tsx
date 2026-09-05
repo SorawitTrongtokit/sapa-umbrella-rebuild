@@ -2,19 +2,21 @@ import { redirect } from "next/navigation";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { OnboardingForm } from "@/components/auth/OnboardingForm";
 import { getAuthIdentity } from "@/lib/auth";
-import { createSupabaseServiceClient } from "@/lib/supabase-server";
+import { getSql } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 
 export default async function OnboardingPage() {
   const user = await getAuthIdentity();
 
   if (!user) redirect("/auth/login");
 
-  const service = createSupabaseServiceClient();
-  const { data: profile } = await service
-    .from("profiles")
-    .select("onboarding_completed, display_name")
-    .eq("id", user.id)
-    .maybeSingle();
+  const sql = getSql();
+  const [profile] = await sql<{ onboarding_completed: boolean; display_name: string | null }[]>`
+    select onboarding_completed, display_name
+    from public.profiles
+    where id = ${user.id}
+  `;
 
   if (profile?.onboarding_completed) redirect("/dashboard");
 

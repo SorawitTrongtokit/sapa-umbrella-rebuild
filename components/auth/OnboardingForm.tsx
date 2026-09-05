@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { getAuthClient } from "@/lib/auth-client";
 
 type OnboardingFormProps = {
   defaultName: string;
@@ -37,15 +37,15 @@ export function OnboardingForm({ defaultName }: OnboardingFormProps) {
     }
 
     if (payload.data?.email) {
-      const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase.auth.signInWithPassword({
+      const authClient = getAuthClient();
+      const { error } = await authClient.signIn.email({
         email: payload.data.email,
         password
       });
 
       if (error) {
         setIsLoading(false);
-        setMessage(error.message);
+        setMessage(error.message ?? "เข้าสู่ระบบไม่สำเร็จ");
         return;
       }
     }

@@ -3,15 +3,6 @@ import { defineConfig } from "@neon/config/v1";
 export default defineConfig({
   // Declare your Neon services here
   auth: true,
-  preview: {
-    functions: {
-      hello: { name: "Hello World", source: "./hello.ts" },
-    },
-    buckets: {
-      // "private" is the default; use "public_read" for anonymous reads
-      assets: { access: "private" },
-    },
-  },
   // Branch policy: per-branch tuning
   branch: (branch) => {
     if (branch.isDefault) {

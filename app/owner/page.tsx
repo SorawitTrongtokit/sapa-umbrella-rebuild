@@ -7,6 +7,8 @@ import type { AuditLog, Feedback, Profile } from "@/lib/types";
 
 type SearchParams = Promise<{ q?: string }>;
 
+export const dynamic = "force-dynamic";
+
 export default async function OwnerPage(props: {
   searchParams: SearchParams;
 }) {

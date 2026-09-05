@@ -1,23 +1,31 @@
 import { type NextRequest } from "next/server";
 import { z } from "zod";
-import { requireActiveProfile } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
+import { requireActiveProfile } from "@/lib/auth";
+import { getSql } from "@/lib/db";
 import { jsonBadRequest, jsonError, jsonOk, requestMeta } from "@/lib/http";
-import { createSupabaseServiceClient } from "@/lib/supabase-server";
 import { feedbackSchema } from "@/lib/validation";
+
+type FeedbackRow = {
+  id: string;
+  user_id: string;
+  message: string;
+  status: string;
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 export async function POST(request: NextRequest) {
   try {
     const profile = await requireActiveProfile();
     const body = feedbackSchema.parse(await request.json());
-    const service = createSupabaseServiceClient();
-    const { data, error } = await service
-      .from("feedback")
-      .insert({ user_id: profile.id, message: body.message })
-      .select("*")
-      .single();
-
-    if (error) throw new Error(error.message);
+    const sql = getSql();
+    const [data] = await sql<FeedbackRow[]>`
+      insert into public.feedback (user_id, message)
+      values (${profile.id}, ${body.message})
+      returning *
+    `;
 
     const meta = requestMeta(request);
     await writeAuditLog({

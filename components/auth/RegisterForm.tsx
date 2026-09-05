@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserPlus } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { getAuthClient } from "@/lib/auth-client";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -32,8 +32,8 @@ export function RegisterForm() {
       return;
     }
 
-    const supabase = createSupabaseBrowserClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const authClient = getAuthClient();
+    const { error } = await authClient.signIn.email({ email, password });
     setIsLoading(false);
 
     if (error) {

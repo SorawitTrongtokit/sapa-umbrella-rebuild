@@ -6,6 +6,8 @@ import { getAuthIdentity } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import type { BorrowTransaction, Location, Profile, Umbrella } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const user = await getAuthIdentity();
 

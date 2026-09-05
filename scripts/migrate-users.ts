@@ -1,8 +1,7 @@
 import "./load-env";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { getSupabaseCompatiblePassword } from "../lib/auth-password";
-import { getSql } from "../lib/db";
+import postgres from "postgres";
+import { hashCredentialPassword } from "../lib/credential-password";
 import { requireEnv } from "../lib/env";
 import { encryptPassword } from "../lib/password-vault";
 import {
@@ -11,47 +10,27 @@ import {
   getNumber,
   getString,
   loadFirebaseExport,
-  maskEmail,
   normalizeClassLevel
 } from "./firebase-export";
 import { decryptLegacyPassword, findPasswordCandidate } from "./legacy-password";
+import { maskEmail } from "./firebase-export";
 
 const args = new Set(process.argv.slice(2));
 const write = args.has("--write");
 const exportPath = process.argv.find((arg) => arg.endsWith(".json")) ?? "data/firebase-rtdb-export.json";
 const legacyKey = process.env.LEGACY_PASSWORD_KEY;
 if (!legacyKey) {
-  throw new Error("Missing LEGACY_PASSWORD_KEY. Set it in .env.local before migrating Firebase users.");
+  throw new Error("Missing LEGACY_PASSWORD_KEY. Set it in .env.local before migrating.");
 }
 
 const emailSchema = z.string().email();
 const root = loadFirebaseExport(exportPath);
 const users = discoverPrimaryUsers(root);
-const supabase = write
-  ? createClient(requireEnv("NEXT_PUBLIC_SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-  : null;
-const sql = write ? getSql() : null;
-
-async function findAuthUserIdByEmail(email: string) {
-  if (!sql) return null;
-  const [existing] = await sql<{ id: string }[]>`
-    select id::text
-    from auth.users
-    where lower(email) = lower(${email})
-    limit 1
-  `;
-  return existing?.id ?? null;
-}
+const sql = write ? postgres(requireEnv("NEON_DATABASE_URL_UNPOOLED"), { max: 1, prepare: false }) : null;
 
 let ready = 0;
 let skipped = 0;
 let imported = 0;
-let adjustedAuthPasswords = 0;
 
 for (const user of users) {
   const emailCandidate = getString(user.record, ["email", "mail"]);
@@ -73,49 +52,40 @@ for (const user of users) {
   }
 
   ready += 1;
-  const authPassword = getSupabaseCompatiblePassword(plainPassword, email.data, user.legacyId);
-  if (authPassword.adjusted) adjustedAuthPasswords += 1;
-
-  console.log(
-    `READY ${maskEmail(email.data)} class=${classLevel} number=${studentNumber} role=${role}${
-      authPassword.adjusted ? " authPasswordAdjusted=true" : ""
-    }`
-  );
+  console.log(`READY ${maskEmail(email.data)} class=${classLevel} number=${studentNumber} role=${role}`);
 
   if (!write) continue;
-  if (!supabase) throw new Error("Supabase client was not initialized");
+  if (!sql) throw new Error("Database client was not initialized");
 
-  const { data, error } = await supabase.auth.admin.createUser({
-    email: email.data,
-    password: authPassword.password,
-    email_confirm: true,
-    app_metadata: { role }
-  });
+  const neonRole = role === "user" ? "user" : "admin";
+  const [authUser] = await sql`
+    insert into neon_auth."user" (id, name, email, "emailVerified", role, "createdAt", "updatedAt")
+    values (gen_random_uuid(), ${displayName ?? email.data}, ${email.data}, true, ${neonRole}, now(), now())
+    on conflict (email) do update
+      set role = excluded.role,
+          "emailVerified" = true,
+          "updatedAt" = now()
+    returning id
+  `;
+  const userId = authUser.id;
 
-  let userId = data.user?.id ?? null;
-  if (error) {
-    userId = await findAuthUserIdByEmail(email.data);
-    if (!userId) {
-      throw new Error(`${email.data}: ${error.message}`);
-    }
-  }
-
-  if (!userId) {
-    console.log(`WARN ${maskEmail(email.data)}: user id not found; skipping profile write`);
-    continue;
-  }
-
-  const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
-    password: authPassword.password,
-    email_confirm: true,
-    app_metadata: { role }
-  });
-  if (updateError) {
-    throw new Error(`${email.data}: ${updateError.message}`);
+  const [account] = await sql`
+    select id from neon_auth.account where "userId" = ${userId} and "providerId" = 'credential'
+  `;
+  if (!account) {
+    await sql`
+      insert into neon_auth.account ("id", "accountId", "providerId", "userId", "password", "createdAt", "updatedAt")
+      values (gen_random_uuid(), ${userId}, 'credential', ${userId}, ${hashCredentialPassword(plainPassword)}, now(), now())
+    `;
+  } else {
+    await sql`
+      update neon_auth.account
+      set password = ${hashCredentialPassword(plainPassword)}, "updatedAt" = now()
+      where id = ${account.id}
+    `;
   }
 
   const encrypted = encryptPassword(plainPassword);
-  if (!sql) throw new Error("Database client was not initialized");
   await sql.begin(async (tx) => {
     await tx`
       insert into public.profiles (
@@ -176,8 +146,10 @@ for (const user of users) {
   imported += 1;
 }
 
+await sql?.end();
+
 console.log(
-  `${write ? "Migration complete" : "Dry run complete"}: ready=${ready}, imported=${imported}, skipped=${skipped}, authPasswordAdjusted=${adjustedAuthPasswords}`
+  `${write ? "Migration complete" : "Dry run complete"}: ready=${ready}, imported=${imported}, skipped=${skipped}`
 );
 if (!write) {
   console.log("Run with --write after reviewing the dry-run output.");

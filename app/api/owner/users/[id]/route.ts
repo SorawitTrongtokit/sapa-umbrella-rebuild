@@ -3,7 +3,6 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import { HttpError, jsonBadRequest, jsonError, jsonOk, requestMeta } from "@/lib/http";
-import { createSupabaseServiceClient } from "@/lib/supabase-server";
 import type { Profile } from "@/lib/types";
 
 const ownerUserSchema = z.object({
@@ -31,7 +30,6 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       throw new HttpError(400, "ไม่สามารถระงับบัญชีตัวเองได้");
     }
 
-    const service = createSupabaseServiceClient();
     const update: Record<string, unknown> = {};
     if ("displayName" in body) update.display_name = body.displayName ?? null;
     if (body.classLevel) update.class_level = body.classLevel;
@@ -49,15 +47,6 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       select * from public.profiles where id = ${id}
     `;
     if (!existing) throw new HttpError(404, "ไม่พบผู้ใช้");
-
-    let authRoleUpdated = false;
-    if (body.role) {
-      const { error: authError } = await service.auth.admin.updateUserById(id, {
-        app_metadata: { role: body.role }
-      });
-      if (authError) throw new Error(authError.message);
-      authRoleUpdated = true;
-    }
 
     const meta = requestMeta(request);
     let data: Profile;
@@ -87,7 +76,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
           )
           values (
             ${actor.id},
-            ${id},
+            ${id}::uuid,
             'user',
             ${id},
             'owner.user.updated',
@@ -99,13 +88,18 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
         return rows;
       });
-    } catch (writeError) {
-      if (authRoleUpdated) {
-        const { error: rollbackError } = await service.auth.admin.updateUserById(id, {
-          app_metadata: { role: existing.role }
-        });
-        if (rollbackError) console.error(rollbackError);
+
+      // Mirror the app role into the auth provider ('admin' covers owner too,
+      // required for Better Auth admin API permissions).
+      if (body.role) {
+        const neonRole = body.role === "user" ? "user" : "admin";
+        await sql`
+          update neon_auth."user"
+          set role = ${neonRole}
+          where id = ${id}::uuid
+        `;
       }
+    } catch (writeError) {
       throw writeError;
     }
 

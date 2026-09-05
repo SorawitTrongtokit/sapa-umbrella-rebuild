@@ -1,11 +1,11 @@
 import { type NextRequest } from "next/server";
 import { z } from "zod";
+import { auth } from "@/lib/auth-server";
 import { writeAuditLog } from "@/lib/audit";
 import { getSql } from "@/lib/db";
 import { isOwnerEmail } from "@/lib/env";
 import { jsonBadRequest, jsonError, jsonOk, requestMeta } from "@/lib/http";
 import { assertPasswordStrength, encryptPassword } from "@/lib/password-vault";
-import { createSupabaseServiceClient } from "@/lib/supabase-server";
 import { registerSchema } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
@@ -13,27 +13,29 @@ export async function POST(request: NextRequest) {
     const body = registerSchema.parse(await request.json());
     assertPasswordStrength(body.password);
 
-    const service = createSupabaseServiceClient();
     const role = isOwnerEmail(body.email) ? "owner" : "user";
-    const { data, error } = await service.auth.admin.createUser({
+    const neonRole = role === "user" ? "user" : "admin";
+    const { data, error } = await auth.signUp.email({
       email: body.email,
       password: body.password,
-      email_confirm: true,
-      app_metadata: { role },
-      user_metadata: {
-        class_level: body.classLevel,
-        student_number: body.studentNumber
-      }
+      name: body.email.split("@")[0] || body.email
     });
 
-    if (error || !data.user) {
+    if (error || !data?.user) {
       throw new Error(error?.message ?? "สร้างบัญชีไม่สำเร็จ");
     }
+    const userId = data.user.id;
 
     try {
       const encrypted = encryptPassword(body.password);
       const sql = getSql();
       await sql.begin(async (tx) => {
+        await tx`
+          update neon_auth."user"
+          set "emailVerified" = true,
+              role = ${neonRole}
+          where id = ${userId}::uuid
+        `;
         await tx`
           insert into public.profiles (
             id,
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
             onboarding_completed
           )
           values (
-            ${data.user.id},
+            ${userId}::uuid,
             ${body.email},
             ${body.classLevel},
             ${body.studentNumber},
@@ -71,12 +73,12 @@ export async function POST(request: NextRequest) {
             changed_by
           )
           values (
-            ${data.user.id},
+            ${userId}::uuid,
             ${encrypted.ciphertext},
             ${encrypted.iv},
             ${encrypted.authTag},
             'app',
-            ${data.user.id}
+            ${userId}::uuid
           )
           on conflict (user_id) do update
           set ciphertext = excluded.ciphertext,
@@ -90,22 +92,27 @@ export async function POST(request: NextRequest) {
 
       const meta = requestMeta(request);
       await writeAuditLog({
-        actorId: data.user.id,
-        targetUserId: data.user.id,
+        actorId: userId,
+        targetUserId: userId,
         entityType: "user",
-        entityId: data.user.id,
+        entityId: userId,
         action: "user.registered",
         details: { role },
         ip: meta.ip,
         userAgent: meta.userAgent
       });
     } catch (writeError) {
-      const { error: cleanupError } = await service.auth.admin.deleteUser(data.user.id);
-      if (cleanupError) console.error(cleanupError);
+      const sql = getSql();
+      await sql`
+        delete from neon_auth.account where "userId" = ${userId}::uuid
+      `;
+      await sql`
+        delete from neon_auth."user" where id = ${userId}::uuid
+      `;
       throw writeError;
     }
 
-    return jsonOk({ userId: data.user.id });
+    return jsonOk({ userId });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return jsonBadRequest(error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง");

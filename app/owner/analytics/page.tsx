@@ -5,6 +5,8 @@ import { getAuthIdentity } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import type { Profile } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function AnalyticsPage() {
   const user = await getAuthIdentity();
 

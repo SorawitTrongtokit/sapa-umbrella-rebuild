@@ -17,13 +17,19 @@ tsconfig.tsbuildinfo
 .firebase/
 supabase/.temp/
 .agent/
+.agents/
 .codex/
 .codegraph/
+skills-lock.json
 tmp/
 
 # exported or private data
 data/*.json
 data/*.ndjson
+
+# database dumps and provider exports (contain PII)
+*.backup.gz
+*.storage.zip
 
 # tests and coverage
 coverage/
@@ -37,3 +43,6 @@ yarn-error.log*
 pnpm-debug.log*
 firebase-debug.log*
 .neon
+
+.vercel
+.env*

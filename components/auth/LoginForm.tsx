@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LogIn } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { getAuthClient } from "@/lib/auth-client";
 
 export function LoginForm() {
   const router = useRouter();
@@ -20,8 +20,8 @@ export function LoginForm() {
     setIsLoading(true);
     setMessage("");
 
-    const supabase = createSupabaseBrowserClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const authClient = getAuthClient();
+    const { error } = await authClient.signIn.email({ email, password });
 
     if (error) {
       const legacyResponse = await fetch("/api/auth/legacy-login", {
@@ -45,12 +45,10 @@ export function LoginForm() {
 
   async function handleGoogleLogin() {
     setMessage("");
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signInWithOAuth({
+    const authClient = getAuthClient();
+    await authClient.signIn.social({
       provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`
-      }
+      callbackURL: `${window.location.origin}/auth/callback`
     });
   }
 

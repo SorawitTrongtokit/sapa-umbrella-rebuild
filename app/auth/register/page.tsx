@@ -3,6 +3,8 @@ import { AuthCard } from "@/components/auth/AuthCard";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { getAuthIdentity } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function RegisterPage() {
   const user = await getAuthIdentity();
 

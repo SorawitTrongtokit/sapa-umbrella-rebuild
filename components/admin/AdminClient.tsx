@@ -14,7 +14,6 @@ import {
   X,
   type LucideIcon
 } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { groupUmbrellas, statusLabel } from "@/lib/umbrella";
 import type { BorrowTransaction, Location, Profile, Umbrella, UmbrellaStatus } from "@/lib/types";
 
@@ -59,20 +58,21 @@ export function AdminClient({ locations, initialUmbrellas, recentTransactions, u
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
-    const channel = supabase
-      .channel("admin:umbrellas")
-      .on("postgres_changes", { event: "*", schema: "public", table: "umbrellas" }, (payload: { new: Record<string, unknown> }) => {
-        const next = payload.new as Umbrella;
-        if (!next?.id) return;
-        setUmbrellas((current) =>
-          current.map((umbrella) => (umbrella.id === next.id ? { ...umbrella, ...next } : umbrella))
-        );
-      })
-      .subscribe();
+    // Poll umbrella statuses every 10s (no realtime provider on Neon).
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch("/api/umbrellas", { cache: "no-store" });
+        const payload = (await response.json()) as { ok: boolean; data?: Umbrella[] };
+        if (payload.ok && Array.isArray(payload.data)) {
+          setUmbrellas(payload.data);
+        }
+      } catch {
+        // Keep current state on transient failures.
+      }
+    }, 10000);
 
     return () => {
-      void supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, []);
 

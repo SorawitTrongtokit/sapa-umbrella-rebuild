@@ -3,6 +3,8 @@ import { AuthCard } from "@/components/auth/AuthCard";
 import { UpdatePasswordForm } from "@/components/auth/UpdatePasswordForm";
 import { getAuthIdentity } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function UpdatePasswordPage() {
   const user = await getAuthIdentity();
 

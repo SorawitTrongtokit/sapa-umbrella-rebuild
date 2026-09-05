@@ -1,11 +1,11 @@
 import { type NextRequest } from "next/server";
 import { z } from "zod";
+import { auth } from "@/lib/auth-server";
 import { writeAuditLog } from "@/lib/audit";
-import { getSupabaseCompatiblePassword } from "@/lib/auth-password";
+import { syncCredentialPassword } from "@/lib/credential-password";
 import { getSql } from "@/lib/db";
 import { HttpError, jsonBadRequest, jsonError, jsonOk, requestMeta } from "@/lib/http";
 import { constantTimeEquals, decryptPassword } from "@/lib/password-vault";
-import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase-server";
 import type { AppRole, AccountStatus } from "@/lib/types";
 
 const legacyLoginSchema = z.object({
@@ -98,28 +98,25 @@ export async function POST(request: NextRequest) {
       throw new HttpError(403, "บัญชีนี้ถูกระงับ กรุณาติดต่อผู้ดูแล");
     }
 
-    const legacyPassword = decryptPassword(row);
-    if (!constantTimeEquals(legacyPassword, body.password)) {
-      await recordLegacyLoginAttempt(sql, attemptKey, body.email, meta.ip, false);
-      throw new HttpError(401, "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
-    }
+    // Fast path: the credential password is already in sync with the vault.
+    let signIn = await auth.signIn.email({ email: row.email, password: body.password });
+    let authPasswordAdjusted = false;
 
-    const authPassword = getSupabaseCompatiblePassword(legacyPassword, row.email, row.legacy_user_id ?? row.id);
-    const service = createSupabaseServiceClient();
-    const { error: updateError } = await service.auth.admin.updateUserById(row.id, {
-      password: authPassword.password,
-      app_metadata: { role: row.role }
-    });
-    if (updateError) throw new Error(updateError.message);
+    if (signIn.error) {
+      const legacyPassword = decryptPassword(row);
+      if (!constantTimeEquals(legacyPassword, body.password)) {
+        await recordLegacyLoginAttempt(sql, attemptKey, body.email, meta.ip, false);
+        throw new HttpError(401, "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+      }
 
-    const supabase = await createSupabaseServerClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: row.email,
-      password: authPassword.password
-    });
-    if (signInError) {
-      await recordLegacyLoginAttempt(sql, attemptKey, body.email, meta.ip, false);
-      throw new HttpError(401, "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+      // Vault matches but the auth provider hash drifted: re-sync and retry.
+      await syncCredentialPassword(row.id, body.password);
+      authPasswordAdjusted = true;
+      signIn = await auth.signIn.email({ email: row.email, password: body.password });
+      if (signIn.error) {
+        await recordLegacyLoginAttempt(sql, attemptKey, body.email, meta.ip, false);
+        throw new HttpError(401, "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+      }
     }
 
     await recordLegacyLoginAttempt(sql, attemptKey, body.email, meta.ip, true);
@@ -129,7 +126,7 @@ export async function POST(request: NextRequest) {
       entityType: "user",
       entityId: row.id,
       action: "auth.legacy_login",
-      details: { authPasswordAdjusted: authPassword.adjusted },
+      details: { authPasswordAdjusted },
       ip: meta.ip,
       userAgent: meta.userAgent
     });

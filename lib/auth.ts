@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { auth } from "@/lib/auth-server";
 import { getSql } from "@/lib/db";
 import { HttpError } from "@/lib/http";
 import type { AppRole, Profile } from "@/lib/types";
@@ -9,17 +9,16 @@ export type AuthIdentity = {
 };
 
 export async function getAuthIdentity(): Promise<AuthIdentity | null> {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.getClaims();
-  const id = data?.claims.sub;
+  const { data: session } = await auth.getSession();
+  const user = session?.user;
 
-  if (error || !id) {
+  if (!user?.id) {
     return null;
   }
 
   return {
-    id,
-    email: typeof data.claims.email === "string" ? data.claims.email : null
+    id: user.id,
+    email: typeof user.email === "string" ? user.email : null
   };
 }
 

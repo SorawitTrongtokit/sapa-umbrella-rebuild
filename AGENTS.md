@@ -1,6 +1,6 @@
 # AGENTS.md
 
-PCSHPL umbrella borrowing system: Next.js 16 (App Router, Turbopack) + React 19 + TypeScript, Tailwind 4, Supabase (Auth/Postgres/Realtime/RLS). `README.md` (Thai) has full feature, endpoint, and schema docs.
+PCSHPL umbrella borrowing system: Next.js 16 (App Router, Turbopack) + React 19 + TypeScript, Tailwind 4, Neon (Managed Better Auth / Neon Postgres / Data API / RLS). `README.md` (Thai) has full feature, endpoint, and schema docs. Migration log from Supabase lives in `docs/migration-issues.md`.
 
 ## Commands
 
@@ -9,38 +9,42 @@ PCSHPL umbrella borrowing system: Next.js 16 (App Router, Turbopack) + React 19 
 - Single test file: `npx.cmd tsx --test tests/validation.test.ts`
 - Tests are pure unit tests (Node test runner via `tsx --test`, files in `tests/*.test.ts`) — no DB or services needed.
 - `next.config.ts` has `typedRoutes: true` — route strings are typechecked; generated route types live under `.next/` and are refreshed by `dev`/`build`.
+- Neon schema migrations live in `db/migrations/*.sql` — apply with `npx.cmd tsx scripts/apply-neon-migration.ts` (tracks state in `app_private.neon_migrations`); needs the direct URL `NEON_DATABASE_URL_UNPOOLED`.
 
 ## Architecture
 
 - No `src/` — path alias `@/*` maps to repo root. Pages/API in `app/`, client components in `components/`, logic in `lib/`.
-- `proxy.ts` at repo root is the Next.js 16 middleware (renamed "proxy" in v16) — refreshes Supabase auth cookies on navigation. Not a stray file.
-- Two DB access paths:
-  - Supabase clients (`lib/supabase-server.ts`, `lib/supabase-browser.ts`) — auth and RLS-scoped queries.
-  - Direct Postgres via `getSql()` in `lib/db.ts` (`DATABASE_URL`) — borrow/return API routes run transactions with `FOR UPDATE` row locks; don't replace them with plain Supabase updates.
-- Roles: `user` < `admin` < `owner`. Signup with `OWNER_EMAIL` auto-promotes to owner. Guards in `lib/auth.ts`.
+- Auth: Neon Auth (Managed Better Auth) via `lib/auth-server.ts` (server: `createNeonAuth` + handler at `app/api/auth/[...path]`) and `lib/auth-client.ts` (browser). Sessions are cookie-based; no service-role key exists.
+- Identity: `auth.getSession()` from `lib/auth.ts`; roles/status live in `public.profiles` (checked in `lib/auth.ts` guards).
+- Direct Postgres via `getSql()` in `lib/db.ts` (`DATABASE_URL`, Neon **pooled**). Borrow/return API routes run transactions with `FOR UPDATE` row locks; don't replace them with plain updates. Scripts use `NEON_DATABASE_URL_UNPOOLED` (direct) for migrations/session state.
+- Roles: `user` < `admin` < `owner` (mirrored into `neon_auth."user".role` as `user`/`admin`). Signup with `OWNER_EMAIL` auto-promotes to owner. Guards in `lib/auth.ts`.
 - Every mutating API route writes `audit_logs` via `lib/audit.ts`; admin/owner actions require a reason field.
+- Umbrella status pages poll `GET /api/umbrellas` every 10s (no realtime provider).
+- Legacy-login: vault (`app_private.password_vault`) is the source of truth for original passwords; `lib/credential-password.ts` re-syncs the Better Auth scrypt hash when needed.
 
-## Supabase & migrations
+## Neon & migrations
 
-- Apply ALL migrations in `supabase/migrations/` in filename order — README's setup section only lists the first two; the third (`202605050001_audit_fixes.sql`) adds the unique active-borrow index and `app_private.auth_attempts`.
-- No `supabase/config.toml` or local Supabase stack — migrations are applied via Supabase SQL editor or CLI against the remote project.
+- `neon.ts` declares `auth: true` + branch policy. After changing it, run `neon.cmd deploy` / `neon.cmd env pull`.
+- **`neon env pull`/`checkout` rewrites `.env.local`** — never keep secrets only there; Vercel env is the deploy source of truth.
+- Schema migrations: `npx.cmd tsx scripts/apply-neon-migration.ts` (add new SQL files to `db/migrations/`; idempotent, tracked).
 - `app_private.password_vault`: AES-256-GCM vault in a private schema with deny-all RLS. Password reveal only through Owner APIs (reason + audit log required). Keys: `PASSWORD_VAULT_KEY`, `LEGACY_PASSWORD_KEY` — losing them makes vault data undecryptable.
 
 ## Environment
 
-- Copy `.env.example` → `.env.local` (gitignored). Required: Supabase URL/anon key, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `OWNER_EMAIL`, vault/legacy keys.
-- Server-only secrets, never expose to client: `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `PASSWORD_VAULT_KEY`, `LEGACY_PASSWORD_KEY`.
+- Copy `.env.example` → `.env.local` (gitignored); `neon.cmd env pull` fills the Neon-managed vars. Required by hand: `APP_URL`, `OWNER_EMAIL`, `PASSWORD_VAULT_KEY`, `LEGACY_PASSWORD_KEY`, `NEON_AUTH_COOKIE_SECRET`.
+- Server-only secrets, never expose to client: `DATABASE_URL`, `NEON_DATABASE_URL_UNPOOLED`, `PASSWORD_VAULT_KEY`, `LEGACY_PASSWORD_KEY`, `NEON_AUTH_COOKIE_SECRET`.
 - Next.js loads `.env.local` automatically, but `scripts/` load it explicitly via `scripts/load-env.ts` (dotenv) — keep those imports when editing scripts.
 
 ## Data & one-off scripts
 
 - Firebase RTDB exports go in `data/*.json` (gitignored); `data/umbrella-pcshspl/` is excluded from tsconfig and eslint.
 - `npm.cmd run inspect:firebase -- <file>` (read-only), then `npm.cmd run migrate:users -- <file>` (dry-run; add `--write` for real migration).
+- Supabase dump/backup files (`*.backup.gz`, `*.storage.zip`) contain PII — gitignored, never commit.
 
 ## Misc
 
 - UI strings are Thai (school app) — keep new user-facing text in Thai.
-- Root `neon.ts`, `hello.ts`, `.neon` are Neon platform config (functions preview/branch policy) — kept intentionally: the plan is to migrate the database from Supabase Postgres to Neon. Not app code.
+- `supabase/migrations/` is kept for history only — the live schema is in `db/migrations/` on Neon.
 - `.agent/`, `.codex/`, `.codegraph/` are local AI tool state — gitignored, never commit them.
 
 ---
