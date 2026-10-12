@@ -1,21 +1,18 @@
 export default function Loading() {
   return (
-    <main className="min-h-dvh bg-sky-50 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-h-dvh animate-fade px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
       <span className="sr-only">กำลังโหลด</span>
-      <div className="mx-auto grid max-w-[92rem] gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="hidden space-y-3 lg:block">
-          <div className="skeleton h-14 rounded-2xl" />
-          <div className="skeleton h-14 rounded-2xl" />
-          <div className="skeleton h-14 rounded-2xl" />
-        </aside>
-        <section className="min-w-0 space-y-6">
-          <div className="skeleton h-24 rounded-[24px]" />
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="skeleton h-64 rounded-[28px]" />
-            <div className="skeleton h-64 rounded-[28px]" />
-            <div className="skeleton h-64 rounded-[28px]" />
-          </div>
-        </section>
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="space-y-2">
+          <div className="skeleton h-8 w-48" />
+          <div className="skeleton h-5 w-72 max-w-full" />
+        </div>
+        <div className="skeleton h-32 rounded-3xl" />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="skeleton h-64 rounded-3xl" />
+          <div className="skeleton h-64 rounded-3xl" />
+          <div className="skeleton h-64 rounded-3xl" />
+        </div>
       </div>
     </main>
   );

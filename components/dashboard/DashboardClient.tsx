@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
-import { AlertCircle, Check, ChevronDown, ChevronUp, Coffee, Dumbbell, Home, MapPin, MessageSquare, Save, Umbrella as UmbrellaIcon, Utensils, X, XCircle } from "lucide-react";
+import { Ban, Dumbbell, Home, MapPin, MessageSquare, Save, Umbrella as UmbrellaIcon, Utensils, type LucideIcon } from "lucide-react";
+import { Sheet } from "@/components/ui/Sheet";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { Toast, useToast } from "@/components/ui/Toast";
 import { findActiveUmbrella, groupUmbrellas, isBorrowedByUser, statusLabel } from "@/lib/umbrella";
-import type { BorrowTransaction, Location, Profile, Umbrella, UmbrellaStatus } from "@/lib/types";
+import type { BorrowTransaction, Location, Profile, Umbrella } from "@/lib/types";
 
 type DashboardClientProps = {
   profile: Profile;
@@ -13,16 +15,10 @@ type DashboardClientProps = {
   activeBorrows: BorrowTransaction[];
 };
 
-const badgeStyles: Record<UmbrellaStatus, string> = {
-  available: "border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-500/5",
-  borrowed: "border-rose-200 bg-rose-50 text-rose-700 shadow-sm shadow-rose-500/5",
-  disabled: "border-slate-200 bg-slate-50 text-slate-500"
-};
-
-const locationConfigs: Record<string, { icon: typeof Home; gradient: string; tint: string }> = {
-  dome: { icon: Home, gradient: "premium-gradient-2", tint: "shadow-rose-100 bg-rose-50/50" },
-  sports_center: { icon: Dumbbell, gradient: "premium-gradient-1", tint: "shadow-indigo-100 bg-indigo-50/50" },
-  cafeteria: { icon: Utensils, gradient: "premium-gradient-3", tint: "shadow-emerald-100 bg-emerald-50/50" }
+const locationIcons: Record<string, LucideIcon> = {
+  dome: Home,
+  sports_center: Dumbbell,
+  cafeteria: Utensils
 };
 
 export function DashboardClient({ profile, locations, initialUmbrellas, activeBorrows }: DashboardClientProps) {
@@ -34,30 +30,13 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
     studentNumber: String(profile.student_number ?? "")
   });
   const [feedback, setFeedback] = useState("");
-  const [message, setMessage] = useState("");
+  const { toast, notify, dismiss } = useToast();
   const [busyUmbrella, setBusyUmbrella] = useState<number | null>(null);
   const [activeBorrowIds, setActiveBorrowIds] = useState<Set<number>>(
     () => new Set(activeBorrows.map((item) => item.umbrella_id))
   );
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
-  const [isProfileExpanded, setIsProfileExpanded] = useState(false);
-  const [isFeedbackExpanded, setIsFeedbackExpanded] = useState(false);
-
-  useEffect(() => {
-    function handleHashChange() {
-      if (window.location.hash === "#profile") {
-        setIsProfileExpanded(true);
-      } else if (window.location.hash === "#feedback") {
-        setIsFeedbackExpanded(true);
-      }
-    }
-    handleHashChange();
-    window.addEventListener("hashchange", handleHashChange);
-    return () => {
-      window.removeEventListener("hashchange", handleHashChange);
-    };
-  }, []);
 
   useEffect(() => {
     // Poll umbrella statuses every 10s (no realtime provider on Neon).
@@ -102,7 +81,7 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
     const isMine = isBorrowedByUser(umbrella, profile.id, activeBorrowIds);
     const endpoint = isMine ? "return" : "borrow";
     setSelectedUmbrella(null);
-    setMessage(isMine ? "กำลังคืนร่ม..." : "กำลังยืมร่ม...");
+    notify("info", isMine ? "กำลังคืนร่ม..." : "กำลังยืมร่ม...");
     setUmbrellas((current) =>
       current.map((item) =>
         item.id === umbrella.id
@@ -125,7 +104,7 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
       const payload = (await response.json()) as { ok: boolean; error?: string };
       if (!payload.ok) {
         setUmbrellas(previousUmbrellas);
-        setMessage(payload.error ?? "ทำรายการไม่สำเร็จ");
+        notify("error", payload.error ?? "ทำรายการไม่สำเร็จ");
         return;
       }
       setActiveBorrowIds((current) => {
@@ -134,10 +113,10 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
         else next.add(umbrella.id);
         return next;
       });
-      setMessage(isMine ? "คืนร่มเรียบร้อย" : "ยืมร่มเรียบร้อย");
+      notify("success", isMine ? "คืนร่มเรียบร้อย" : "ยืมร่มเรียบร้อย");
     } catch {
       setUmbrellas(previousUmbrellas);
-      setMessage("เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่");
+      notify("error", "เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่");
     } finally {
       setBusyUmbrella(null);
     }
@@ -146,7 +125,7 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
   async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSavingProfile(true);
-    setMessage("");
+    dismiss();
     const response = await fetch("/api/profile", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -154,13 +133,14 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
     });
     const payload = (await response.json()) as { ok: boolean; error?: string };
     setIsSavingProfile(false);
-    setMessage(payload.ok ? "บันทึกข้อมูลส่วนตัวแล้ว" : payload.error ?? "บันทึกไม่สำเร็จ");
+    if (payload.ok) notify("success", "บันทึกข้อมูลส่วนตัวแล้ว");
+    else notify("error", payload.error ?? "บันทึกไม่สำเร็จ");
   }
 
   async function sendFeedback(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSendingFeedback(true);
-    setMessage("");
+    dismiss();
     const response = await fetch("/api/feedback", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -168,234 +148,268 @@ export function DashboardClient({ profile, locations, initialUmbrellas, activeBo
     });
     const payload = (await response.json()) as { ok: boolean; error?: string };
     setIsSendingFeedback(false);
-    if (payload.ok) setFeedback("");
-    setMessage(payload.ok ? "ส่งคำติชมแล้ว ขอบคุณครับ/ค่ะ" : payload.error ?? "ส่งคำติชมไม่สำเร็จ");
+    if (payload.ok) {
+      setFeedback("");
+      notify("success", "ส่งคำติชมแล้ว ขอบคุณครับ/ค่ะ");
+    } else {
+      notify("error", payload.error ?? "ส่งคำติชมไม่สำเร็จ");
+    }
   }
 
+  const availablePercent = umbrellas.length ? (counts.available / umbrellas.length) * 100 : 0;
+  const selectedIsMine = selectedUmbrella ? isBorrowedByUser(selectedUmbrella, profile.id, activeBorrowIds) : false;
+
   return (
-    <div className="animate-page grid grid-cols-12 gap-5 lg:gap-6">
-      
-      {/* Sidebar Section */}
-      <aside className="col-span-full space-y-5 lg:col-span-3">
-        
-        {/* User Status holographic glass card */}
-        <section className="glass-card rounded-[28px] p-5">
-          <h2 className="mb-3.5 flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-400">
-            <span className="status-pulse size-2 rounded-full bg-indigo-500" />
-            สถานะของคุณ
-          </h2>
-          <div className="soft-shine relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-700 p-5 text-white shadow-md shadow-indigo-200/50">
-            <div className="relative z-10">
-              <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider opacity-85">
-                {activeUmbrella ? "กำลังยืมร่มหมายเลข" : "ยังไม่มีร่มที่กำลังยืม"}
-              </p>
-              <p className="mb-2 text-3xl font-black">{activeUmbrella ? String(activeUmbrella.id).padStart(2, "0") : "--"}</p>
-              <div className="flex w-fit items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wide">
-                <AlertCircle size={11} />
-                {activeUmbrella ? `คืนที่: ${locationNameById.get(activeUmbrella.location_id) ?? "-"}` : "แตะร่มสีเขียวเพื่อยืม"}
-              </div>
-            </div>
-            <UmbrellaIcon className="absolute -bottom-3 -right-3 size-20 -rotate-12 text-white/10" />
-          </div>
-          <button
-            className="btn-secondary focus-ring mt-3 w-full px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={!activeUmbrella || busyUmbrella === activeUmbrella.id}
-            type="button"
-            onClick={() => activeUmbrella && setSelectedUmbrella(activeUmbrella)}
-          >
-            ทำรายการคืนร่ม
-          </button>
-        </section>
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+      <Toast toast={toast} onDismiss={dismiss} />
 
-        {/* Utilization summaries */}
-        <section className="glass-card rounded-[28px] p-5">
-          <h2 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">สรุปภาพรวมร่ม</h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs font-bold">
-              <span className="text-slate-500">พร้อมใช้งาน</span>
-              <span className="text-sm font-black text-emerald-600">
-                {counts.available}/{umbrellas.length}
-              </span>
+      <div className="min-w-0 space-y-5">
+        {/* Your current borrow */}
+        <section
+          className={`card relative animate-rise overflow-hidden p-5 transition-colors duration-500 sm:p-6 ${
+            activeUmbrella ? "border-transparent bg-accent text-white" : ""
+          }`}
+        >
+          <UmbrellaIcon
+            aria-hidden="true"
+            className={`absolute -bottom-6 -right-4 size-32 -rotate-12 ${activeUmbrella ? "text-white/10" : "text-sunken"}`}
+          />
+          <div className="relative flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className={`text-sm font-medium ${activeUmbrella ? "text-white/80" : "text-muted"}`}>สถานะของคุณ</p>
+              {activeUmbrella ? (
+                <>
+                  <p className="mt-1 text-xl font-bold">
+                    กำลังยืมร่มหมายเลข{" "}
+                    <span className="inline-block animate-pop text-3xl tabular-nums" key={activeUmbrella.id}>
+                      {String(activeUmbrella.id).padStart(2, "0")}
+                    </span>
+                  </p>
+                  <p className="mt-1 flex items-center gap-1.5 text-sm text-white/85">
+                    <MapPin aria-hidden="true" size={15} />
+                    คืนที่ {locationNameById.get(activeUmbrella.location_id) ?? "-"}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="mt-1 text-xl font-bold text-ink">ยังไม่มีร่มที่กำลังยืม</p>
+                  <p className="mt-1 text-sm text-muted">แตะร่มที่ว่างด้านล่างเพื่อยืม</p>
+                </>
+              )}
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-              <div
-                className="h-full rounded-full bg-emerald-400 transition-all duration-700"
-                style={{ width: `${umbrellas.length ? (counts.available / umbrellas.length) * 100 : 0}%` }}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <SummaryBox label="ว่าง" value={counts.available} tone="success" />
-              <SummaryBox label="ถูกยืม" value={counts.borrowed} tone="danger" />
-            </div>
-            <SummaryBox label="ชำรุด / ปิดใช้งาน" value={counts.disabled} tone="neutral" />
+            {activeUmbrella ? (
+              <button
+                className="btn bg-white text-accent-strong hover:bg-white/90"
+                disabled={busyUmbrella === activeUmbrella.id}
+                type="button"
+                onClick={() => setSelectedUmbrella(activeUmbrella)}
+              >
+                ทำรายการคืนร่ม
+              </button>
+            ) : null}
           </div>
         </section>
 
-        {/* Profile Card */}
-        <section id="profile" className="glass-card rounded-[28px] p-5">
-          <button
-            type="button"
-            className="flex w-full items-center justify-between text-left focus:outline-none"
-            onClick={() => setIsProfileExpanded(!isProfileExpanded)}
-          >
-            <h2 className="text-sm font-black uppercase tracking-wider text-slate-700">ข้อมูลส่วนตัว</h2>
-            {isProfileExpanded ? (
-              <ChevronUp className="text-slate-400" size={16} />
-            ) : (
-              <ChevronDown className="text-slate-400" size={16} />
-            )}
-          </button>
-          {isProfileExpanded && (
-            <form className="mt-3.5 space-y-3 animate-pop" onSubmit={saveProfile}>
+        {/* Legend */}
+        <div className="flex flex-wrap gap-x-5 gap-y-2 px-1 text-sm text-muted">
+          <LegendItem className="bg-ok" label="ว่าง" />
+          <LegendItem className="bg-warn" label="ถูกยืมแล้ว" />
+          <LegendItem className="bg-accent" label="ร่มของคุณ" />
+          <LegendItem className="border border-dashed border-muted" label="ปิดใช้งาน" />
+        </div>
+
+        {/* Locations */}
+        <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+          {groups.map((group, index) => {
+            const Icon = locationIcons[group.location.id] ?? MapPin;
+            const free = group.umbrellas.filter((item) => item.status === "available").length;
+            return (
+              <section
+                className="card animate-rise p-4 sm:p-5"
+                key={group.location.id}
+                style={{ animationDelay: `${80 + index * 70}ms` }}
+              >
+                <header className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-strong">
+                      <Icon aria-hidden="true" size={19} />
+                    </span>
+                    <div className="min-w-0">
+                      <h2 className="truncate font-semibold text-ink">{group.location.name_th}</h2>
+                      <p className="text-sm text-muted">{group.umbrellas.length} คัน</p>
+                    </div>
+                  </div>
+                  <span className={`badge ${free > 0 ? "badge-ok" : ""}`}>ว่าง {free}</span>
+                </header>
+
+                <div className="grid grid-cols-4 gap-2">
+                  {group.umbrellas.map((umbrella) => {
+                    const isMine = isBorrowedByUser(umbrella, profile.id, activeBorrowIds);
+                    const canAct = isMine || (!activeUmbrella && umbrella.status === "available");
+                    return (
+                      <UmbrellaTile
+                        key={umbrella.id}
+                        umbrella={umbrella}
+                        isMine={isMine}
+                        canAct={canAct}
+                        busy={busyUmbrella === umbrella.id}
+                        onClick={() => setSelectedUmbrella(umbrella)}
+                      />
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      </div>
+
+      <aside className="space-y-5">
+        {/* Overview */}
+        <section className="card animate-rise p-5 [animation-delay:120ms]">
+          <h2 className="font-semibold text-ink">สรุปภาพรวมร่ม</h2>
+          <div className="mt-3 flex items-baseline justify-between">
+            <span className="text-sm text-muted">พร้อมใช้งาน</span>
+            <span className="text-lg font-bold tabular-nums text-ok">
+              {counts.available}
+              <span className="text-sm font-medium text-muted">/{umbrellas.length}</span>
+            </span>
+          </div>
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-sunken">
+            <div
+              className="h-full rounded-full bg-ok transition-[width] duration-700 ease-soft"
+              style={{ width: `${availablePercent}%` }}
+            />
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+            <SummaryStat label="ว่าง" value={counts.available} className="text-ok" />
+            <SummaryStat label="ถูกยืม" value={counts.borrowed} className="text-warn" />
+            <SummaryStat label="ปิดใช้งาน" value={counts.disabled} className="text-muted" />
+          </div>
+        </section>
+
+        {/* Profile */}
+        <section className="card animate-rise scroll-mt-20 p-5 [animation-delay:180ms]" id="profile">
+          <h2 className="font-semibold text-ink">ข้อมูลส่วนตัว</h2>
+          <form className="mt-3 space-y-3" onSubmit={saveProfile}>
+            <label className="label">
+              ชื่อที่แสดง
               <input
-                className="focus-ring field-control w-full px-3.5 py-2 text-sm"
-                aria-label="ชื่อที่แสดง"
+                className="field"
                 value={profileDraft.displayName}
                 onChange={(event) => setProfileDraft((draft) => ({ ...draft, displayName: event.target.value }))}
-                placeholder="ชื่อที่แสดง"
                 required
               />
-              <div className="grid grid-cols-2 gap-2">
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="label">
+                ชั้น
                 <input
-                  className="focus-ring field-control w-full px-3.5 py-2 text-sm"
-                  aria-label="ชั้น"
+                  className="field"
                   value={profileDraft.classLevel}
                   onChange={(event) => setProfileDraft((draft) => ({ ...draft, classLevel: event.target.value }))}
-                  placeholder="ชั้น"
                   required
                 />
+              </label>
+              <label className="label">
+                เลขที่
                 <input
-                  className="focus-ring field-control w-full px-3.5 py-2 text-sm"
-                  aria-label="เลขที่"
+                  className="field"
                   inputMode="numeric"
                   value={profileDraft.studentNumber}
                   onChange={(event) => setProfileDraft((draft) => ({ ...draft, studentNumber: event.target.value }))}
-                  placeholder="เลขที่"
                   required
                 />
-              </div>
-              <button
-                className="btn-primary focus-ring flex w-full cursor-pointer items-center justify-center gap-1.5 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
-                disabled={isSavingProfile}
-                type="submit"
-              >
-                <Save aria-hidden="true" size={15} />
-                {isSavingProfile ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
-              </button>
-            </form>
-          )}
+              </label>
+            </div>
+            <button className="btn btn-primary w-full" disabled={isSavingProfile} type="submit">
+              <Save aria-hidden="true" size={17} />
+              {isSavingProfile ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
+            </button>
+          </form>
         </section>
 
-        {/* Feedback Card */}
-        <section id="feedback" className="glass-card rounded-[28px] p-5">
-          <button
-            type="button"
-            className="flex w-full items-center justify-between text-left focus:outline-none"
-            onClick={() => setIsFeedbackExpanded(!isFeedbackExpanded)}
-          >
-            <h2 className="text-sm font-black uppercase tracking-wider text-slate-700">ส่งคำติชม</h2>
-            {isFeedbackExpanded ? (
-              <ChevronUp className="text-slate-400" size={16} />
-            ) : (
-              <ChevronDown className="text-slate-400" size={16} />
-            )}
-          </button>
-          {isFeedbackExpanded && (
-            <form className="mt-3.5 space-y-3 animate-pop" onSubmit={sendFeedback}>
-              <textarea
-                className="focus-ring field-control min-h-24 w-full resize-y px-3.5 py-2.5 text-sm"
-                value={feedback}
-                onChange={(event) => setFeedback(event.target.value)}
-                placeholder="พิมพ์ข้อเสนอแนะหรือปัญหาที่พบที่นี่..."
-                required
-              />
-              <button
-                className="btn-secondary focus-ring flex w-full cursor-pointer items-center justify-center gap-1.5 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isSendingFeedback}
-                type="submit"
-              >
-                <MessageSquare aria-hidden="true" size={15} />
-                {isSendingFeedback ? "กำลังส่ง..." : "ส่งคำติชม"}
-              </button>
-            </form>
-          )}
+        {/* Feedback */}
+        <section className="card animate-rise scroll-mt-20 p-5 [animation-delay:240ms]" id="feedback">
+          <h2 className="font-semibold text-ink">ส่งคำติชม</h2>
+          <form className="mt-3 space-y-3" onSubmit={sendFeedback}>
+            <textarea
+              aria-label="คำติชม"
+              className="field min-h-24 resize-y"
+              value={feedback}
+              onChange={(event) => setFeedback(event.target.value)}
+              placeholder="พิมพ์ข้อเสนอแนะหรือปัญหาที่พบที่นี่..."
+              required
+            />
+            <button className="btn btn-secondary w-full" disabled={isSendingFeedback} type="submit">
+              <MessageSquare aria-hidden="true" size={17} />
+              {isSendingFeedback ? "กำลังส่ง..." : "ส่งคำติชม"}
+            </button>
+          </form>
         </section>
       </aside>
 
-      {/* Main Services / Locations View */}
-      <section className="col-span-full space-y-5 lg:col-span-9">
-        {message ? (
-          <p className="rounded-2xl border border-indigo-200/50 bg-indigo-50/50 px-4 py-3 text-xs sm:text-sm font-bold text-indigo-900 animate-pop" role="status">
-            {message}
-          </p>
-        ) : null}
-
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-          {groups.map((group, index) => (
-            <section
-              className="glass-card animate-rise rounded-[28px] p-4.5 shadow-sm"
-              key={group.location.id}
-              style={{ animationDelay: `${index * 45}ms` } as React.CSSProperties}
-            >
-              <header className="mb-5 flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span
-                    className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-white shadow-sm ${
-                      locationConfigs[group.location.id]?.gradient ?? "bg-blue-400 shadow-blue-100"
-                    }`}
-                  >
-                    {(() => {
-                      const Icon = locationConfigs[group.location.id]?.icon ?? MapPin;
-                      return <Icon size={18} strokeWidth={2.5} />;
-                    })()}
-                  </span>
-                  <div>
-                    <h2 className="truncate text-base font-black tracking-normal text-slate-800">{group.location.name_th}</h2>
-                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">จุดบริการ</p>
-                  </div>
-                </div>
-                <span className="shrink-0 rounded-lg border border-slate-200/80 bg-white/70 px-2 py-1 text-[9px] font-black text-slate-400">
-                  {group.umbrellas.length} คัน
-                </span>
-              </header>
-
-              {/* Umbrella Grid Cards - 2 cols on mobile for large tapping area */}
-              <div className="grid grid-cols-2 gap-3 sm:gap-3.5">
-                {group.umbrellas.map((umbrella) => {
-                  const isMine = isBorrowedByUser(umbrella, profile.id, activeBorrowIds);
-                  const canAct = isMine || (!activeUmbrella && umbrella.status === "available");
-                  return (
-                    <UmbrellaTile
-                      key={umbrella.id}
-                      umbrella={umbrella}
-                      isMine={isMine}
-                      canAct={canAct}
-                      busy={busyUmbrella === umbrella.id}
-                      onClick={() => setSelectedUmbrella(umbrella)}
-                    />
-                  );
-                })}
+      {/* Borrow / return confirmation */}
+      <Sheet
+        label="ยืนยันรายการ"
+        open={selectedUmbrella !== null}
+        onClose={() => setSelectedUmbrella(null)}
+      >
+        {selectedUmbrella ? (
+          <>
+            <div className="text-center">
+              <div
+                className={`mx-auto flex size-16 animate-pop items-center justify-center rounded-3xl ${
+                  selectedIsMine ? "bg-accent text-white" : "bg-ok-soft text-ok"
+                }`}
+              >
+                <UmbrellaIcon aria-hidden="true" size={30} />
               </div>
-            </section>
-          ))}
-        </div>
-      </section>
+              <h3 className="mt-4 text-2xl font-bold text-ink">ร่ม #{selectedUmbrella.id}</h3>
+              <p className="mt-1 flex items-center justify-center gap-1.5 text-sm text-muted">
+                <MapPin aria-hidden="true" size={15} />
+                {locationNameById.get(selectedUmbrella.location_id) ?? selectedUmbrella.location_id}
+              </p>
+            </div>
 
-      {/* Confirmation Bottom Sheet Drawer / Modal popup */}
-      <UmbrellaModal
-        selectedUmbrella={selectedUmbrella}
-        setSelectedUmbrella={setSelectedUmbrella}
-        profileId={profile.id}
-        activeBorrowIds={activeBorrowIds}
-        locationNameById={locationNameById}
-        busyUmbrella={busyUmbrella}
-        actOnUmbrella={actOnUmbrella}
-      />
+            <div className="mt-5 rounded-2xl bg-canvas p-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted">สถานะร่ม</span>
+                <StatusBadge status={selectedUmbrella.status} />
+              </div>
+              <p className="mt-2 text-sm text-ink-soft">
+                {selectedIsMine
+                  ? "กดยืนยันเพื่อคืนร่มที่จุดบริการเดิมให้ถูกต้อง"
+                  : "กดยืนยันเพื่อบันทึกรายการยืมร่มคันนี้"}
+              </p>
+            </div>
+
+            <button
+              className="btn btn-primary mt-5 min-h-12 w-full text-base"
+              disabled={busyUmbrella === selectedUmbrella.id}
+              type="button"
+              onClick={() => actOnUmbrella(selectedUmbrella)}
+            >
+              {selectedIsMine ? "ยืนยันการคืนร่ม" : "ยืนยันการยืมร่ม"}
+            </button>
+            <button className="btn btn-ghost mt-2 w-full" type="button" onClick={() => setSelectedUmbrella(null)}>
+              ยกเลิกรายการ
+            </button>
+          </>
+        ) : null}
+      </Sheet>
     </div>
   );
 }
 
-// 3D Tilt button component for umbrellas
+const tileStyles = {
+  mine: "border-transparent bg-accent text-white shadow-[0_10px_20px_-10px_rgb(75_99_240/0.8)] hover:-translate-y-0.5",
+  available:
+    "border-line bg-surface text-ink enabled:hover:-translate-y-0.5 enabled:hover:border-ok enabled:hover:shadow-soft disabled:opacity-55",
+  borrowed: "border-transparent bg-sunken text-muted",
+  disabled: "border-dashed border-line text-muted/70"
+};
+
 function UmbrellaTile({
   umbrella,
   isMine,
@@ -409,202 +423,47 @@ function UmbrellaTile({
   busy: boolean;
   onClick: () => void;
 }) {
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-
-  function handleMouseMove(e: React.MouseEvent<HTMLButtonElement>) {
-    // 3D Tilt calculations on hover
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const xc = rect.width / 2;
-    const yc = rect.height / 2;
-    const rotateX = -(y - yc) / 5; // max 6 degrees rotation
-    const rotateY = (x - xc) / 5;
-    setTilt({ x: rotateX, y: rotateY });
-  }
-
-  function handleMouseLeave() {
-    setTilt({ x: 0, y: 0 });
-  }
-
-  let cardStyle = "";
-  let dotColor = "";
-
-  if (umbrella.status === "available") {
-    cardStyle = "border-emerald-200/50 bg-emerald-500/5 text-emerald-950 hover:bg-emerald-500/10 hover:border-emerald-300 glow-success";
-    dotColor = "bg-emerald-500 shadow-[0_0_8px_#10b981]";
-  } else if (umbrella.status === "borrowed") {
-    if (isMine) {
-      cardStyle = "premium-gradient-self text-white border border-indigo-400/20 glow-self";
-      dotColor = "bg-white shadow-[0_0_8px_#ffffff]";
-    } else {
-      cardStyle = "border-rose-200/40 bg-rose-500/5 text-rose-900/60 shadow-none";
-      dotColor = "bg-rose-400";
-    }
-  } else {
-    cardStyle = "border-slate-200/40 bg-slate-100/50 text-slate-400 shadow-none";
-    dotColor = "bg-slate-300";
-  }
-
-  const isResetting = tilt.x === 0 && tilt.y === 0;
+  const label = busy ? "กำลังทำรายการ" : isMine ? "ร่มของคุณ" : statusLabel[umbrella.status];
 
   return (
     <button
-      className={`focus-ring relative flex min-h-24 flex-col justify-between overflow-hidden rounded-2xl p-4 text-left transition-all duration-75 mobile-active-feedback disabled:cursor-not-allowed disabled:opacity-50 ${cardStyle}`}
-      style={{
-        transform: `perspective(400px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-        transition: isResetting ? "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), background-color 200ms ease, border-color 200ms ease" : "background-color 200ms ease, border-color 200ms ease"
-      }}
+      aria-label={`ร่มหมายเลข ${umbrella.id} ${label}`}
+      className={`flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border transition duration-200 ease-spring enabled:active:scale-95 disabled:cursor-not-allowed ${
+        tileStyles[isMine ? "mine" : umbrella.status]
+      } ${busy ? "animate-pulse" : isMine ? "animate-pop" : ""}`}
       disabled={!canAct || busy}
+      title={label}
       type="button"
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
       onClick={onClick}
     >
-      {/* Glowing Status Dot */}
-      <span className="absolute top-3.5 right-3.5 flex size-2">
-        {umbrella.status !== "disabled" && (
-          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${dotColor}`} />
-        )}
-        <span className={`relative inline-flex rounded-full size-2 ${dotColor}`} />
+      <span className={`text-lg font-semibold tabular-nums ${umbrella.status === "disabled" ? "line-through" : ""}`}>
+        {String(umbrella.id).padStart(2, "0")}
       </span>
-
-      <span className="block text-xl font-extrabold">{String(umbrella.id).padStart(2, "0")}</span>
-      
-      <span className="block text-[8px] font-black uppercase tracking-wider opacity-85">
-        {busy ? "กำลังทำรายการ" : isMine ? "ร่มของคุณ" : statusLabel[umbrella.status]}
-      </span>
-      <span className="absolute -bottom-1 -right-1 size-8 rounded-full bg-white/5" />
+      {isMine ? (
+        <UmbrellaIcon aria-hidden="true" size={13} />
+      ) : umbrella.status === "disabled" ? (
+        <Ban aria-hidden="true" size={13} />
+      ) : (
+        <span className={`size-1.5 rounded-full ${umbrella.status === "available" ? "bg-ok" : "bg-warn"}`} />
+      )}
     </button>
   );
 }
 
-// Confirmation slide-up modal / bottom drawer component
-function UmbrellaModal({
-  selectedUmbrella,
-  setSelectedUmbrella,
-  profileId,
-  activeBorrowIds,
-  locationNameById,
-  busyUmbrella,
-  actOnUmbrella
-}: {
-  selectedUmbrella: Umbrella | null;
-  setSelectedUmbrella: (u: Umbrella | null) => void;
-  profileId: string;
-  activeBorrowIds: Set<number>;
-  locationNameById: Map<string, string>;
-  busyUmbrella: number | null;
-  actOnUmbrella: (u: Umbrella) => void;
-}) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    // eslint-disable-next-line
-    setMounted(true);
-  }, []);
-
-  if (!selectedUmbrella || !mounted) return null;
-
-  const isMine = isBorrowedByUser(selectedUmbrella, profileId, activeBorrowIds);
-
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/20 backdrop-blur-md p-0 sm:p-4 transition-all duration-300">
-      <button
-        className="absolute inset-0 bg-transparent cursor-default"
-        type="button"
-        aria-label="ปิดหน้าต่าง"
-        onClick={() => setSelectedUmbrella(null)}
-      />
-      
-      {/* Bottom Sheet Drawer */}
-      <section className="mobile-bottom-sheet relative w-full sm:max-w-md rounded-t-[32px] sm:rounded-3xl border-t sm:border border-white bg-white/95 backdrop-blur-xl p-6 shadow-2xl pb-10 sm:pb-6">
-        
-        {/* Mobile Header indicator bar */}
-        <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-200 sm:hidden" />
-
-        <button
-          className="focus-ring absolute right-5 top-5 hidden sm:flex size-8 items-center justify-center rounded-xl bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600"
-          type="button"
-          aria-label="ปิด"
-          onClick={() => setSelectedUmbrella(null)}
-        >
-          <X size={15} />
-        </button>
-
-        <div className="space-y-3.5 text-center">
-          <div
-            className={`mx-auto flex size-16 items-center justify-center rounded-2xl text-white shadow-md ${
-              selectedUmbrella.status === "available" ? "bg-emerald-500 shadow-emerald-200" : "premium-gradient-self shadow-indigo-200"
-            }`}
-          >
-            <UmbrellaIcon size={32} />
-          </div>
-          <div>
-            <h3 className="text-2xl font-black text-slate-800">ร่ม #{selectedUmbrella.id}</h3>
-            <p className="mt-0.5 text-[9px] font-black uppercase tracking-widest text-indigo-600">
-              {locationNameById.get(selectedUmbrella.location_id) ?? selectedUmbrella.location_id}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-5 space-y-3 rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
-          <div className="flex items-center justify-between text-xs font-bold">
-            <span className="text-slate-400">สถานะร่ม</span>
-            <StatusBadge status={selectedUmbrella.status} />
-          </div>
-          <p className="text-xs font-medium leading-relaxed text-slate-600">
-            {isMine
-              ? "กดยืนยันเพื่อคืนร่มที่จุดบริการเดิมให้ถูกต้อง"
-              : "กดยืนยันเพื่อบันทึกรายการยืมร่มคันนี้"}
-          </p>
-        </div>
-
-        <button
-          className="btn-primary focus-ring mt-5 w-full py-3.5 text-base font-bold disabled:cursor-not-allowed disabled:bg-slate-400"
-          disabled={busyUmbrella === selectedUmbrella.id}
-          type="button"
-          onClick={() => actOnUmbrella(selectedUmbrella)}
-        >
-          {isMine ? "ยืนยันการคืนร่ม" : "ยืนยันการยืมร่ม"}
-        </button>
-        
-        <button
-          className="focus-ring mt-2 w-full py-2.5 text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600"
-          type="button"
-          onClick={() => setSelectedUmbrella(null)}
-        >
-          ยกเลิกรายการ
-        </button>
-      </section>
-    </div>,
-    document.body
-  );
-}
-
-function StatusBadge({ status }: { status: UmbrellaStatus }) {
+function LegendItem({ className, label }: { className: string; label: string }) {
   return (
-    <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${badgeStyles[status]}`}>
-      {statusLabel[status]}
+    <span className="flex items-center gap-2">
+      <span className={`size-2.5 rounded-full ${className}`} />
+      {label}
     </span>
   );
 }
 
-function SummaryBox({ label, value, tone }: { label: string; value: number; tone: "success" | "danger" | "neutral" }) {
-  const Icon = tone === "success" ? Check : XCircle;
-  const colors = {
-    success: "border-emerald-200/50 bg-emerald-500/5 text-emerald-800",
-    danger: "border-rose-200/40 bg-rose-500/5 text-rose-800",
-    neutral: "border-slate-200/55 bg-slate-100/50 text-slate-500"
-  };
-
+function SummaryStat({ label, value, className }: { label: string; value: number; className: string }) {
   return (
-    <div className={`rounded-xl border p-3 ${colors[tone]}`}>
-      <div className="flex items-center justify-between gap-1.5">
-        <p className="text-[9px] font-black uppercase tracking-wider">{label}</p>
-        <Icon aria-hidden="true" size={13} />
-      </div>
-      <p className="mt-0.5 text-xl font-black">{value}</p>
+    <div className="rounded-xl bg-canvas px-2 py-2.5">
+      <p className={`text-xl font-bold tabular-nums ${className}`}>{value}</p>
+      <p className="text-xs text-muted">{label}</p>
     </div>
   );
 }

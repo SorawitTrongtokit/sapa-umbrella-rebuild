@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import { getAuthClient } from "@/lib/auth-client";
+import { Notice } from "@/components/ui/Notice";
 
 type OnboardingFormProps = {
   defaultName: string;
@@ -55,33 +56,33 @@ export function OnboardingForm({ defaultName }: OnboardingFormProps) {
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
-      <label className="block text-xs font-black uppercase tracking-wider text-slate-400">
+    <form className="space-y-4" onSubmit={handleSubmit}>
+      <label className="label">
         ชื่อที่แสดง
         <input
-          className="focus-ring field-control mt-2 w-full px-4 py-3 text-slate-900 placeholder:text-slate-400"
+          className="field"
           value={displayName}
           onChange={(event) => setDisplayName(event.target.value)}
           maxLength={120}
           required
         />
       </label>
-      
+
       <div className="grid grid-cols-2 gap-3">
-        <label className="block text-xs font-black uppercase tracking-wider text-slate-400">
+        <label className="label">
           ชั้น
           <input
-            className="focus-ring field-control mt-2 w-full px-4 py-3 text-slate-900 placeholder:text-slate-400"
+            className="field"
             value={classLevel}
             onChange={(event) => setClassLevel(event.target.value)}
             placeholder="ม.5/1"
             required
           />
         </label>
-        <label className="block text-xs font-black uppercase tracking-wider text-slate-400">
+        <label className="label">
           เลขที่
           <input
-            className="focus-ring field-control mt-2 w-full px-4 py-3 text-slate-900 placeholder:text-slate-400"
+            className="field"
             inputMode="numeric"
             value={studentNumber}
             onChange={(event) => setStudentNumber(event.target.value)}
@@ -90,11 +91,11 @@ export function OnboardingForm({ defaultName }: OnboardingFormProps) {
           />
         </label>
       </div>
-      
-      <label className="block text-xs font-black uppercase tracking-wider text-slate-400">
+
+      <label className="label">
         ตั้งรหัสผ่านสำหรับระบบนี้
         <input
-          className="focus-ring field-control mt-2 w-full px-4 py-3 text-slate-900 placeholder:text-slate-400"
+          className="field"
           type="password"
           autoComplete="new-password"
           value={password}
@@ -105,11 +106,11 @@ export function OnboardingForm({ defaultName }: OnboardingFormProps) {
       </label>
 
       {message ? (
-        <p className="rounded-2xl border border-rose-200 bg-rose-50 text-rose-800 px-4 py-3.5 text-xs font-bold transition-all animate-pop" role="alert">{message}</p>
+        <Notice tone="error">{message}</Notice>
       ) : null}
 
       <button
-        className="btn-primary focus-ring flex w-full cursor-pointer items-center justify-center gap-2 text-base disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
+        className="btn btn-primary w-full"
         disabled={isLoading}
         type="submit"
       >

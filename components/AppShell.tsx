@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { BarChart3, LayoutDashboard, MessageSquare, Shield, Umbrella, User, UserCog, type LucideIcon } from "lucide-react";
+import { BarChart3, LayoutGrid, MessageSquare, Shield, Umbrella, User, UserCog, type LucideIcon } from "lucide-react";
+import { roleLabel } from "@/lib/labels";
 import type { AppRole, Profile } from "@/lib/types";
 import { SignOutButton } from "@/components/SignOutButton";
 
@@ -19,132 +20,145 @@ const navItems: Array<{
   icon: LucideIcon;
   roles: AppRole[];
 }> = [
-  { href: "/dashboard", key: "dashboard", label: "ร่มทั้งหมด", icon: LayoutDashboard, roles: ["user", "admin", "owner"] },
+  { href: "/dashboard", key: "dashboard", label: "ร่มทั้งหมด", icon: LayoutGrid, roles: ["user", "admin", "owner"] },
   { href: "/admin", key: "admin", label: "ผู้ดูแล", icon: Shield, roles: ["admin", "owner"] },
-  { href: "/owner/analytics" as Route, key: "analytics", label: "ข้อมูลสถิติ", icon: BarChart3, roles: ["admin", "owner"] },
+  { href: "/owner/analytics" as Route, key: "analytics", label: "สถิติ", icon: BarChart3, roles: ["admin", "owner"] },
   { href: "/owner", key: "owner", label: "Owner", icon: UserCog, roles: ["owner"] }
+];
+
+const quickLinks: Array<{ href: Route; label: string; icon: LucideIcon }> = [
+  { href: "/dashboard#profile" as Route, label: "โปรไฟล์", icon: User },
+  { href: "/dashboard#feedback" as Route, label: "คำติชม", icon: MessageSquare }
 ];
 
 export function AppShell({ profile, active, title, subtitle, children }: AppShellProps) {
   const visibleItems = navItems.filter((item) => item.roles.includes(profile.role));
-  const initials = (profile.display_name || profile.email || "PC").slice(0, 2).toUpperCase();
-
-  // Role display logic with color schemes
-  const roleColors: Record<AppRole, string> = {
-    owner: "border-amber-200 bg-amber-500/10 text-amber-800 shadow-sm shadow-amber-500/5",
-    admin: "border-purple-200 bg-purple-500/10 text-purple-800 shadow-sm shadow-purple-500/5",
-    user: "border-indigo-200 bg-indigo-500/10 text-indigo-800 shadow-sm shadow-indigo-500/5"
-  };
-
-  const roleLabels: Record<AppRole, string> = {
-    owner: "เจ้าของระบบ (Owner)",
-    admin: "ผู้ดูแล (Admin)",
-    user: "ผู้ใช้ทั่วไป (User)"
-  };
+  const displayName = profile.display_name || profile.email;
+  const initials = (displayName || "PC").slice(0, 2).toUpperCase();
+  const classInfo = [profile.class_level, profile.student_number ? `เลขที่ ${profile.student_number}` : null]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div className="animate-page min-h-dvh font-sans soft-grid-bg pb-12">
-      {/* Background Orbs */}
-      <div className="absolute rounded-full blur-[120px] opacity-35 pointer-events-none -z-10 w-[20rem] h-[20rem] bg-indigo-200 -top-10 -left-10" />
-      <div className="absolute rounded-full blur-[120px] opacity-30 pointer-events-none -z-10 w-[20rem] h-[20rem] bg-purple-200 top-1/3 -right-10" />
-
-      {/* Floating Glass Header */}
-      <header className="animate-down sticky top-0 z-50 border-b border-white/50 bg-white/55 backdrop-blur-lg shadow-[0_4px_30px_rgba(0,0,0,0.02)]">
-        <div className="mx-auto flex max-w-[92rem] flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-          
-          {/* Logo & Main Title */}
-          <div className="flex items-center gap-3.5">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl premium-gradient-1 text-white shadow-md shadow-indigo-500/20">
-              <Umbrella aria-hidden="true" size={24} />
-            </div>
-            <div className="min-w-0">
-              <h1 className="truncate text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">{title}</h1>
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-indigo-600">PCSHSPL Umbrella System</p>
-            </div>
-          </div>
-
-          {/* User Profile Info & Sign Out Button */}
-          <div className="flex items-center justify-between gap-3 sm:justify-end">
-            <div className="text-right sm:block">
-              <p className="max-w-[180px] sm:max-w-[240px] truncate text-xs sm:text-sm font-bold text-slate-800 underline decoration-indigo-300 decoration-2 underline-offset-4">
-                {profile.display_name || profile.email}
-              </p>
-              <p className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
-                {profile.class_level ?? "PCSHSPL"} {profile.student_number ? `เลขที่ ${profile.student_number}` : ""} • {profile.role}
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-2 rounded-2xl border border-white/80 bg-white/40 p-1.5 text-xs text-slate-700 shadow-sm backdrop-blur-md">
-              <div className="flex size-8 items-center justify-center rounded-xl premium-gradient-2 font-black text-white shadow-sm shadow-rose-200">
-                {initials}
-              </div>
-              <span className={`hidden sm:inline-block rounded-lg border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${roleColors[profile.role]}`}>
-                {roleLabels[profile.role]}
-              </span>
-            </div>
-            
-            <SignOutButton />
+    <div className="min-h-dvh lg:pl-64">
+      {/* Desktop sidebar */}
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-surface px-4 py-6 lg:flex">
+        <div className="flex items-center gap-3 px-2">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-accent text-white">
+            <Umbrella aria-hidden="true" size={22} />
+          </span>
+          <div className="min-w-0">
+            <p className="font-bold leading-tight text-ink">ระบบยืมคืนร่ม</p>
+            <p className="text-xs text-muted">PCSHSPL</p>
           </div>
         </div>
-      </header>
 
-      {/* Main Container Layout */}
-      <div className="mx-auto grid max-w-[92rem] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[250px_minmax(0,1fr)] lg:px-8">
-        
-        {/* Navigation Sidebar (Horizontal scrolling on mobile, vertical grid on desktop) */}
-        <aside className="glass-card animate-rise h-fit rounded-3xl p-2.5 lg:sticky lg:top-24">
-          <nav className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none lg:grid lg:overflow-visible lg:pb-0">
-            {visibleItems.map((item) => {
+        <nav className="mt-8 flex flex-1 flex-col gap-1">
+          {visibleItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = active === item.key;
+            return (
+              <Link
+                aria-current={isActive ? "page" : undefined}
+                className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-[0.9375rem] font-medium transition duration-200 ${
+                  isActive ? "bg-accent-soft font-semibold text-accent-strong" : "text-ink-soft hover:bg-canvas hover:text-ink"
+                }`}
+                href={item.href}
+                key={item.href}
+              >
+                <Icon aria-hidden="true" size={19} />
+                {item.label}
+              </Link>
+            );
+          })}
+
+          <div className="mt-4 border-t border-line pt-4">
+            {quickLinks.map((item) => {
               const Icon = item.icon;
-              const isActive = active === item.key;
               return (
                 <Link
-                  className={`focus-ring flex min-h-11 shrink-0 items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-bold transition-all duration-200 ${
-                    isActive
-                      ? "premium-gradient-1 text-white shadow-md shadow-indigo-500/20"
-                      : "text-slate-500 hover:bg-indigo-50/50 hover:text-indigo-700"
-                  }`}
+                  className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-[0.9375rem] font-medium text-muted transition duration-200 hover:bg-canvas hover:text-ink"
                   href={item.href}
                   key={item.href}
                 >
-                  <Icon aria-hidden={true} size={18} />
-                  <span>{item.label}</span>
+                  <Icon aria-hidden="true" size={19} />
+                  {item.label}
                 </Link>
               );
             })}
-            
-            {/* Quick Navigation Links visible only on Desktop */}
-            <div className="mt-2.5 hidden border-t border-slate-200/50 pt-2.5 lg:block">
-              <Link
-                className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-bold text-slate-400 hover:bg-indigo-50/50 hover:text-indigo-700 transition-colors"
-                href={"/dashboard#feedback" as Route}
-              >
-                <MessageSquare aria-hidden={true} size={18} />
-                <span>คำติชม</span>
-              </Link>
-              <Link
-                className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-bold text-slate-400 hover:bg-indigo-50/50 hover:text-indigo-700 transition-colors"
-                href={"/dashboard#profile" as Route}
-              >
-                <User aria-hidden={true} size={18} />
-                <span>โปรไฟล์</span>
-              </Link>
-            </div>
-          </nav>
-        </aside>
+          </div>
+        </nav>
 
-        {/* Content Wrapper */}
-        <main className="animate-rise min-w-0 space-y-5">
-          {/* Frosted Subtitle Banner */}
-          <div className="rounded-2xl border border-white/60 bg-white/40 backdrop-blur-md px-5 py-3.5 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
-            <p className="text-xs sm:text-sm font-bold leading-relaxed text-slate-600">{subtitle}</p>
+        <div className="rounded-2xl bg-canvas p-3">
+          <div className="flex items-center gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm font-bold text-accent-strong">
+              {initials}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-ink">{displayName}</p>
+              <p className="truncate text-xs text-muted">
+                {roleLabel[profile.role]}
+                {classInfo ? ` · ${classInfo}` : ""}
+              </p>
+            </div>
           </div>
-          
+          <SignOutButton className="btn btn-secondary btn-sm mt-3 w-full" />
+        </div>
+      </aside>
+
+      {/* Mobile top bar */}
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-line bg-canvas/85 px-4 backdrop-blur-md lg:hidden">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white">
+            <Umbrella aria-hidden="true" size={19} />
+          </span>
           <div className="min-w-0">
-            {children}
+            <p className="truncate text-sm font-semibold leading-tight text-ink">{displayName}</p>
+            <p className="truncate text-xs leading-tight text-muted">
+              {roleLabel[profile.role]}
+              {classInfo ? ` · ${classInfo}` : ""}
+            </p>
           </div>
-        </main>
-      </div>
+        </div>
+        <SignOutButton className="btn btn-ghost btn-sm shrink-0" />
+      </header>
+
+      <main className={`mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-10 lg:pb-12 lg:pt-10 ${visibleItems.length > 1 ? "pb-28" : "pb-10"}`}>
+        <div className="mb-6 animate-rise">
+          <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-[1.75rem]">{title}</h1>
+          <p className="mt-1 text-[0.9375rem] text-muted">{subtitle}</p>
+        </div>
+        {children}
+      </main>
+
+      {/* Mobile bottom tab bar (only when there is more than one destination) */}
+      {visibleItems.length > 1 ? (
+        <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
+          {visibleItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = active === item.key;
+            return (
+              <Link
+                aria-current={isActive ? "page" : undefined}
+                className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-xs font-medium transition-colors duration-200 ${
+                  isActive ? "text-accent-strong" : "text-muted"
+                }`}
+                href={item.href}
+                key={item.href}
+              >
+                <span
+                  className={`flex h-7 w-12 items-center justify-center rounded-full transition duration-300 ease-spring ${
+                    isActive ? "bg-accent-soft" : ""
+                  }`}
+                >
+                  <Icon aria-hidden="true" size={20} />
+                </span>
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+      ) : null}
     </div>
   );
 }

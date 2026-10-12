@@ -37,15 +37,13 @@ export default async function DashboardPage() {
 
   if (profile.status !== "active") {
     return (
-      <main className="flex min-h-dvh items-center justify-center overflow-hidden bg-sky-50 px-4 py-8">
-        <section className="w-full max-w-md rounded-[40px] border-4 border-white bg-white p-8 text-center shadow-2xl shadow-blue-900/10">
-          <div className="mx-auto mb-5 flex size-20 items-center justify-center rounded-[28px] bg-rose-100 text-rose-600">
-            <CircleAlert aria-hidden="true" size={38} />
+      <main className="flex min-h-dvh items-center justify-center px-4 py-10">
+        <section className="card w-full max-w-md animate-rise p-8 text-center">
+          <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-3xl bg-danger-soft text-danger">
+            <CircleAlert aria-hidden="true" size={30} />
           </div>
-          <h1 className="text-2xl font-black tracking-normal text-blue-950">บัญชีถูกระงับ</h1>
-          <p className="mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold leading-6 text-rose-800">
-            กรุณาติดต่อผู้ดูแลระบบเพื่อเปิดใช้งานบัญชีอีกครั้ง
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">บัญชีถูกระงับ</h1>
+          <p className="mt-2 text-[0.9375rem] text-muted">กรุณาติดต่อผู้ดูแลระบบเพื่อเปิดใช้งานบัญชีอีกครั้ง</p>
         </section>
       </main>
     );

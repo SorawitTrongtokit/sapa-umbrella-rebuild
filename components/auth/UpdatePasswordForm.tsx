@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound } from "lucide-react";
+import { Notice } from "@/components/ui/Notice";
 
 export function UpdatePasswordForm() {
   const router = useRouter();
@@ -38,11 +39,11 @@ export function UpdatePasswordForm() {
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
-      <label className="block text-xs font-black uppercase tracking-wider text-slate-400">
+    <form className="space-y-4" onSubmit={handleSubmit}>
+      <label className="label">
         รหัสผ่านใหม่
         <input
-          className="focus-ring field-control mt-2 w-full px-4 py-3 text-slate-900 placeholder:text-slate-400"
+          className="field"
           type="password"
           autoComplete="new-password"
           value={password}
@@ -51,10 +52,10 @@ export function UpdatePasswordForm() {
           required
         />
       </label>
-      <label className="block text-xs font-black uppercase tracking-wider text-slate-400">
+      <label className="label">
         ยืนยันรหัสผ่านใหม่
         <input
-          className="focus-ring field-control mt-2 w-full px-4 py-3 text-slate-900 placeholder:text-slate-400"
+          className="field"
           type="password"
           autoComplete="new-password"
           value={confirmPassword}
@@ -65,13 +66,11 @@ export function UpdatePasswordForm() {
       </label>
 
       {message ? (
-        <p className="rounded-2xl border border-rose-200 bg-rose-50 text-rose-800 px-4 py-3.5 text-xs font-bold transition-all animate-pop" role="alert">
-          {message}
-        </p>
+        <Notice tone="error">{message}</Notice>
       ) : null}
 
       <button
-        className="btn-primary focus-ring flex w-full cursor-pointer items-center justify-center gap-2 text-base disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
+        className="btn btn-primary w-full"
         disabled={isLoading}
         type="submit"
       >
